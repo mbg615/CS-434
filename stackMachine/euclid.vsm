@@ -1,52 +1,53 @@
-	jump MAIN
-GCD
-	push 1 ; This is a comment.
+	jump MAIN                               ; Jump to label MAIN
+
+GCD                                         ; GCD Label
+	push 1                                  ; Push 1 to top of stack
 	load SP
-	push 0
+	push 0                                  ; Push 0 to top of stack
 	eq
-	brz LABEL1
-	push 0
+	brz LABEL1                              ; Branch on 0 to LABEL1
+	push 0                                  ; Push 0 to top of stack
 	load SP
 	retv
-	jump LABEL2
-LABEL1
+	jump LABEL2                             ; Jump to label LABEL2
+LABEL1                                      ; LABEL1 label
 	push 1
 	load SP
-	push 0
+	push 0                                  ; Push 0 to top of stack
 	load SP
-	push 0
+	push 0                                  ; Push 0 to top of stack
 	load SP
-	push 1
+	push 1                                  ; Push 1 to top of stack
 	load SP
 	div
-	push 1 ; Will this line be gone?
+	push 1                                  ; Push 1 to top of stack
 	load SP
 	mul
 	sub
-	push 2
+	push 2                                  ; Push 2 to top of stack
 	call GCD
 	retv
-LABEL2
+LABEL2                                      ; LABEL2 label
 	ret
-MAIN ; Did I break the label?
+MAIN                                        ; MAIN label
 	print "Euclid's GCD\n"
-	push 0
-	push 0
+	push 0                                  ; Push 1 to top of stack
+	push 0                                  ; Push 1 to top of stack
 	print "Enter the first number:\t"
 	read
-	push 0
+	push 0                                  ; Push 1 to top of stack
 	store SP
 	print "Enter the second number:\t"
 	read
-	push 1
+	push 1                                  ; Push 1 to top of stack
 	store SP
-	push 0
+	push 0                                  ; Push 0 to top of stack
 	load SP
-	push 1
+	push 1                                  ; Push 1 to top of stack
 	load SP
-	push 2
+	push 2                                  ; Push 2 to top of stack
 	call GCD
 	print "Greatest Common Divisor:\t"
 	print
 	print "\n"
-	end SP
+	end SP                                  ; End with SP as status485++++++475

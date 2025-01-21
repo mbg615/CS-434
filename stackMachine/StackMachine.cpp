@@ -1,54 +1,148 @@
 #include <iostream>
 #include <fstream>
+#include <functional>
 #include <string>
 #include <vector>
 #include <sstream>
+#include <unordered_map>
 
 #define MAX_INSTRUCTION_COUNT 1024
 
 class StackMachine {
 private:
+    std::unordered_map<std::string, std::function<void(std::string)>> instructionImplementationMap;
     int generalPurposeRegister = 0; // General Purpose Register
 
     // Instruction model
-    std::string instructionQueue[MAX_INSTRUCTION_COUNT];
-    int instructionCounter = 0; // Next instruction to execute
+    std::string instructionQueue[MAX_INSTRUCTION_COUNT][2];
+    int instructionCounter = 0; // (pc) Next instruction to execute
 
     // Stack model
     int memoryStack[4096]{};
-    int stackTop = 0; // Next open slot in memory stack
-    int stackPointer = -1; // Current frame in memory
+    int stackTop = 0; // (top) Next open slot in memory stack
+    int stackPointer = -1; // (sp) Current frame in memory
 
 public:
+    StackMachine() {
+        // instructionImplementationMap["push"] = std::bind(&StackMachine::push, this, std::placeholders::_1);
+        instructionImplementationMap["push"] = [this](const std::string &arg) {push(arg);};
+        instructionImplementationMap["pop"] = [this](const std::string &arg) {pop(arg);};
+        instructionImplementationMap["dup"] = [this](const std::string &arg) {dup(arg);};
+        instructionImplementationMap["load"] = [this](const std::string &arg) {load(arg);};
 
 
+        
+    }
+    
+    void push(const std::string &arg) {
+        if (arg.empty()) {
+            std::cerr << "Error: push requires an argument" << std::endl;
+            return;
+        }
+        if (stackTop >= MAX_INSTRUCTION_COUNT) {
+            std::cerr << "Error: stack overflow" << std::endl;
+            return;
+        }
+        memoryStack[stackTop++] = generalPurposeRegister = std::stoi(arg);
+        stackPointer++;
+        std::cout << "Pushed " << arg << " onto the stack" << std::endl;
+    }
 
+    void pop(const std::string &arg) {
+        if (stackTop <= 0) {
+            std::cerr << "Error: stack underflow" << std::endl;
+            return;
+        }
+        if (!arg.empty()) {
+            // ToDO: Implement register pop?
+        }
+        generalPurposeRegister = memoryStack[--stackTop];
+        stackPointer--;
+        std::cout << "Popped " << generalPurposeRegister << " from the stack" << std::endl;
+    }
 
+    void dup(const std::string &arg) {
+        if (stackTop <= 0) {
+            std::cerr << "Error: stack underflow" << std::endl;
+            return;
+        }
+        if (stackTop >= MAX_INSTRUCTION_COUNT) {
+            std::cerr << "Error: stack overflow" << std::endl;
+            return;
+        }
+        memoryStack[stackTop++] = generalPurposeRegister = memoryStack[stackTop - 1];
+        stackPointer++;
+        std::cout << "Duplicated " << generalPurposeRegister << " onto the stack" << std::endl;
+    }
 
+    void load(const std::string &arg) {
+        if (stackTop <= 0) {
+            std::cerr << "Error: stack underflow" << std::endl;
+            return;
+        }
+        if (stackTop >= MAX_INSTRUCTION_COUNT) {
+            std::cerr << "Error: stack overflow" << std::endl;
+            return;
+        }
+        if (arg.empty()) {
+            // Assuming (0) global frame
+            memoryStack[stackTop++] = generalPurposeRegister = memoryStack[0];
+        }
+        if (arg == "sp" || arg == "SP" || arg == "top" || arg == "TOP") {
+            if (stackPointer < 0 || stackTop < 0) {
+                std::cerr << "Error: stack underflow" << std::endl;
+                return;
+            }
+            if (stackPointer >= MAX_INSTRUCTION_COUNT || stackTop >= MAX_INSTRUCTION_COUNT) {
+                std::cerr << "Error: stack overflow" << std::endl;
+                return;
+            }
+            memoryStack[stackTop++] = generalPurposeRegister = memoryStack[stackPointer];
+            stackPointer++;
+        }
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    void run() {
-        for(auto & i: instructionQueue) {
-            if(i.empty()) continue; // Skip empty lines
-            parseLine(i);
+    void save(const std::string &arg) {
+        if (stackTop <= 0) {
+            std::cerr << "Error: stack underflow" << std::endl;
+            return;
+        }
+        if (stackTop >= MAX_INSTRUCTION_COUNT) {
+            std::cerr << "Error: stack overflow" << std::endl;
+            return;
+        }
+        if (arg.empty()) {
+            // Assuming (0) global frame
+            generalPurposeRegister = memoryStack[stackTop - 1];
+        }
+        if (arg == "sp" || arg == "SP" || arg == "top" || arg == "TOP") {
+            if (stackPointer < 0 || stackTop < 0) {
+                std::cerr << "Error: stack underflow" << std::endl;
+                return;
+            }
+            if (stackPointer >= MAX_INSTRUCTION_COUNT || stackTop >= MAX_INSTRUCTION_COUNT) {
+                std::cerr << "Error: stack overflow" << std::endl;
+                return;
+            }
+            memoryStack[stackTop++] = generalPurposeRegister = memoryStack[stackPointer];
+            stackPointer++;
         }
     }
 
 
-    std::vector<std::string> parseLine(std::string &instruction) {
+
+
+
+
+
+
+
+
+
+
+
+
+    static std::vector<std::string> parseLine(std::string &instruction) {
         // Strip any comments from the instruction line.
         if(size_t position = instruction.find(';'); position != std::string::npos) {
             instruction.erase(position);
@@ -78,6 +172,7 @@ public:
             }
         }
 
+        return tokens;
     }
 
     bool loadProgramFromFile(const std::string &filename) {
@@ -91,7 +186,8 @@ public:
         std::string instruction;
 
         while(std::getline(programFile, instruction) && index < MAX_INSTRUCTION_COUNT) {
-            instructionQueue[index++] = instruction;
+            parseLine(instruction);
+            index++;
         }
 
         programFile.close();
@@ -119,7 +215,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    stackMachine.run();
 
     return 0;
 }
