@@ -5,12 +5,14 @@
 #include <vector>
 #include <sstream>
 #include <unordered_map>
+#include <variant>
 
 #define MAX_INSTRUCTION_COUNT 1024
 
 class StackMachine {
 private:
-    std::unordered_map<std::string, std::function<void(std::string)>> instructionImplementationMap;
+    //std::unordered_map<std::string, std::function<void(std::string)>> instructionImplementationMap;
+    std::unordered_map<std::string, std::variant<std::function<void(std::string)>, std::function<void()>>> instructionImplementationMap;
     int generalPurposeRegister = 0; // General Purpose Register
 
     // Instruction model
@@ -20,15 +22,15 @@ private:
     // Stack model
     int memoryStack[4096]{};
     int stackTop = 0; // (top) Next open slot in memory stack
-    int stackPointer = -1; // (sp) Current frame in memory
+    int stackPointer = 0; // (sp) Base frame of current function
 
 public:
     StackMachine() {
         // instructionImplementationMap["push"] = std::bind(&StackMachine::push, this, std::placeholders::_1);
         instructionImplementationMap["push"] = [this](const std::string &arg) {push(arg);};
         instructionImplementationMap["pop"] = [this](const std::string &arg) {pop(arg);};
-        instructionImplementationMap["dup"] = [this](const std::string &arg) {dup(arg);};
-        instructionImplementationMap["load"] = [this](const std::string &arg) {load(arg);};
+        instructionImplementationMap["dup"] = [this]() {dup();};
+
 
 
         
@@ -44,7 +46,6 @@ public:
             return;
         }
         memoryStack[stackTop++] = generalPurposeRegister = std::stoi(arg);
-        stackPointer++;
         std::cout << "Pushed " << arg << " onto the stack" << std::endl;
     }
 
@@ -53,15 +54,17 @@ public:
             std::cerr << "Error: stack underflow" << std::endl;
             return;
         }
-        if (!arg.empty()) {
-            // ToDO: Implement register pop?
+        if (arg.empty()) {
+            generalPurposeRegister = memoryStack[--stackTop];
+        } else if(arg == "top") {
+            stackTop = memoryStack[--stackTop];
+        } else if(arg == "sp") {
+            stackPointer = memoryStack[--stackTop];
         }
-        generalPurposeRegister = memoryStack[--stackTop];
-        stackPointer--;
         std::cout << "Popped " << generalPurposeRegister << " from the stack" << std::endl;
     }
 
-    void dup(const std::string &arg) {
+    void dup() {
         if (stackTop <= 0) {
             std::cerr << "Error: stack underflow" << std::endl;
             return;
@@ -71,64 +74,8 @@ public:
             return;
         }
         memoryStack[stackTop++] = generalPurposeRegister = memoryStack[stackTop - 1];
-        stackPointer++;
         std::cout << "Duplicated " << generalPurposeRegister << " onto the stack" << std::endl;
     }
-
-    void load(const std::string &arg) {
-        if (stackTop <= 0) {
-            std::cerr << "Error: stack underflow" << std::endl;
-            return;
-        }
-        if (stackTop >= MAX_INSTRUCTION_COUNT) {
-            std::cerr << "Error: stack overflow" << std::endl;
-            return;
-        }
-        if (arg.empty()) {
-            // Assuming (0) global frame
-            memoryStack[stackTop++] = generalPurposeRegister = memoryStack[0];
-        }
-        if (arg == "sp" || arg == "SP" || arg == "top" || arg == "TOP") {
-            if (stackPointer < 0 || stackTop < 0) {
-                std::cerr << "Error: stack underflow" << std::endl;
-                return;
-            }
-            if (stackPointer >= MAX_INSTRUCTION_COUNT || stackTop >= MAX_INSTRUCTION_COUNT) {
-                std::cerr << "Error: stack overflow" << std::endl;
-                return;
-            }
-            memoryStack[stackTop++] = generalPurposeRegister = memoryStack[stackPointer];
-            stackPointer++;
-        }
-    }
-
-    void save(const std::string &arg) {
-        if (stackTop <= 0) {
-            std::cerr << "Error: stack underflow" << std::endl;
-            return;
-        }
-        if (stackTop >= MAX_INSTRUCTION_COUNT) {
-            std::cerr << "Error: stack overflow" << std::endl;
-            return;
-        }
-        if (arg.empty()) {
-            // Assuming (0) global frame
-            generalPurposeRegister = memoryStack[stackTop - 1];
-        }
-        if (arg == "sp" || arg == "SP" || arg == "top" || arg == "TOP") {
-            if (stackPointer < 0 || stackTop < 0) {
-                std::cerr << "Error: stack underflow" << std::endl;
-                return;
-            }
-            if (stackPointer >= MAX_INSTRUCTION_COUNT || stackTop >= MAX_INSTRUCTION_COUNT) {
-                std::cerr << "Error: stack overflow" << std::endl;
-                return;
-            }
-            memoryStack[stackTop++] = generalPurposeRegister = memoryStack[stackPointer];
-            stackPointer++;
-        }
-    }
-
 
 
 
