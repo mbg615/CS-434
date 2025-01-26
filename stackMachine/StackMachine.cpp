@@ -136,41 +136,136 @@ public:
 
     // Arithmetic functions
     void add() {
-
-
+        if (stackTop <= 2) {
+            std::cerr << "Error: stack underflow" << std::endl;
+            return;
+        }
+        pop(std::string());
+        const int temp = generalPurposeRegister;
+        pop(std::string());
+        generalPurposeRegister += temp;
+        push(std::to_string(generalPurposeRegister));
     }
 
     void sub() {
-
+        if (stackTop <= 2) {
+            std::cerr << "Error: stack underflow" << std::endl;
+            return;
+        }
+        pop(std::string());
+        const int temp = generalPurposeRegister;
+        pop(std::string());
+        generalPurposeRegister -= temp;
+        push(std::to_string(generalPurposeRegister));
     }
 
     void mul() {
-
+        if (stackTop <= 2) {
+            std::cerr << "Error: stack underflow" << std::endl;
+            return;
+        }
+        pop(std::string());
+        const int temp = generalPurposeRegister;
+        pop(std::string());
+        generalPurposeRegister *= temp;
+        push(std::to_string(generalPurposeRegister));
     }
 
     void div() {
-
+        if (stackTop <= 2) {
+            std::cerr << "Error: stack underflow" << std::endl;
+            return;
+        }
+        pop(std::string());
+        const int temp = generalPurposeRegister;
+        pop(std::string());
+        generalPurposeRegister /= temp;
+        push(std::to_string(generalPurposeRegister));
     }
 
     void mod() {
-
+        if (stackTop <= 2) {
+            std::cerr << "Error: stack underflow" << std::endl;
+            return;
+        }
+        pop(std::string());
+        const int temp = generalPurposeRegister;
+        pop(std::string());
+        generalPurposeRegister %= temp;
+        push(std::to_string(generalPurposeRegister));
     }
 
     // Relational operator functions
     void eq() {
-
+        if (stackTop <= 2) {
+            std::cerr << "Error: stack underflow" << std::endl;
+            return;
+        }
+        pop(std::string());
+        const int temp = generalPurposeRegister;
+        pop(std::string());
+        generalPurposeRegister = temp == generalPurposeRegister;
+        push(std::to_string(generalPurposeRegister));
     }
 
     void neq() {
+        if (stackTop <= 2) {
+            std::cerr << "Error: stack underflow" << std::endl;
+            return;
+        }
+        pop(std::string());
+        const int temp = generalPurposeRegister;
+        pop(std::string());
+        generalPurposeRegister = temp != generalPurposeRegister;
+        push(std::to_string(generalPurposeRegister));
+    }
 
+    void lt() {
+        if (stackTop <= 2) {
+            std::cerr << "Error: stack underflow" << std::endl;
+            return;
+        }
+        pop(std::string());
+        const int temp = generalPurposeRegister;
+        pop(std::string());
+        generalPurposeRegister = generalPurposeRegister < temp;
+        push(std::to_string(generalPurposeRegister));
     }
 
     void lte() {
+        if (stackTop <= 2) {
+            std::cerr << "Error: stack underflow" << std::endl;
+            return;
+        }
+        pop(std::string());
+        const int temp = generalPurposeRegister;
+        pop(std::string());
+        generalPurposeRegister = generalPurposeRegister <= temp;
+        push(std::to_string(generalPurposeRegister));
+    }
 
+    void gt() {
+        if (stackTop <= 2) {
+            std::cerr << "Error: stack underflow" << std::endl;
+            return;
+        }
+        pop(std::string());
+        const int temp = generalPurposeRegister;
+        pop(std::string());
+        generalPurposeRegister = generalPurposeRegister > temp;
+        push(std::to_string(generalPurposeRegister));
     }
 
     void gte() {
-
+        if (stackTop <= 2) {
+            std::cerr << "Error: stack underflow" << std::endl;
+            return;
+        }
+        pop(std::string());
+        const int temp = generalPurposeRegister;
+        pop(std::string());
+        generalPurposeRegister = generalPurposeRegister >= temp;
+        push(std::to_string(generalPurposeRegister));
     }
 
     // Special functions
