@@ -6,7 +6,6 @@
 #include <sstream>
 #include <unordered_map>
 #include <variant>
-#include <bits/fs_path.h>
 
 #define MAX_INSTRUCTION_COUNT 1024
 
