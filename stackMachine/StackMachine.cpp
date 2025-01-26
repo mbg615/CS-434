@@ -22,7 +22,7 @@ private:
     // Stack model
     int memoryStack[4096]{};
     int stackTop = 0; // (top) Next open slot in memory stack
-    int stackPointer = 0; // (sp) Base frame of current function
+    int basePointer = 0; // (bp) Base frame of current function
 
 public:
     StackMachine() {
@@ -33,9 +33,16 @@ public:
 
 
 
+        instructionImplementationMap["print"] = [this](const std::string &arg) {print(arg);};
+        instructionImplementationMap["read"] = [this]() {read();};
+        instructionImplementationMap["end"] = [this](const std::string &arg) {end(arg);};
+
+
+
         
     }
-    
+
+    // Memory stack functions
     void push(const std::string &arg) {
         if (arg.empty()) {
             std::cerr << "Error: push requires an argument" << std::endl;
@@ -45,8 +52,18 @@ public:
             std::cerr << "Error: stack overflow" << std::endl;
             return;
         }
-        memoryStack[stackTop++] = generalPurposeRegister = std::stoi(arg);
-        std::cout << "Pushed " << arg << " onto the stack" << std::endl;
+
+        if(arg == "bp") {
+            if(basePointer <= 0 || basePointer >= MAX_INSTRUCTION_COUNT) {
+                return;
+            }
+            memoryStack[stackTop++] = generalPurposeRegister = memoryStack[basePointer];
+        } else if(arg == "top") {
+            memoryStack[stackTop++] = generalPurposeRegister = memoryStack[stackTop - 1];
+        } else {
+            memoryStack[stackTop++] = generalPurposeRegister = std::stoi(arg);
+        }
+        std::cout << "Pushed " << generalPurposeRegister << " onto the stack" << std::endl;
     }
 
     void pop(const std::string &arg) {
@@ -54,14 +71,17 @@ public:
             std::cerr << "Error: stack underflow" << std::endl;
             return;
         }
-        if (arg.empty()) {
-            generalPurposeRegister = memoryStack[--stackTop];
-        } else if(arg == "top") {
+        if(arg == "top") {
             stackTop = memoryStack[--stackTop];
-        } else if(arg == "sp") {
-            stackPointer = memoryStack[--stackTop];
+            std::cout << "Popped " << stackTop << " from the stack" << std::endl;
+        } else if(arg == "bp") {
+            basePointer = memoryStack[--stackTop];
+            std::cout << "Popped " << basePointer << " from the stack" << std::endl;
+
+        } else {
+            generalPurposeRegister = memoryStack[--stackTop];
+            std::cout << "Popped " << generalPurposeRegister << " from the stack" << std::endl;
         }
-        std::cout << "Popped " << generalPurposeRegister << " from the stack" << std::endl;
     }
 
     void dup() {
@@ -77,18 +97,121 @@ public:
         std::cout << "Duplicated " << generalPurposeRegister << " onto the stack" << std::endl;
     }
 
+    void load(const std::string &arg) {
+
+    }
+
+    void save(const std::string &arg) {
+
+    }
+
+    void store(const std::string &arg) {
+
+    }
+
+    // Control of execution functions
+    void call(const std::string &arg) {
+
+    }
+
+    void ret(const std::string &arg) {
+
+    }
+
+    void retv(const std::string &arg) {
+
+    }
+
+    void brt(const std::string &arg) {
+
+    }
+
+    void brz(const std::string &arg) {
+
+    }
+
+    void jump(const std::string &arg) {
+
+    }
+
+    // Arithmetic functions
+    void add() {
 
 
+    }
 
+    void sub() {
 
+    }
 
+    void mul() {
 
+    }
 
+    void div() {
 
+    }
 
+    void mod() {
 
+    }
 
+    // Relational operator functions
+    void eq() {
 
+    }
+
+    void neq() {
+
+    }
+
+    void lte() {
+
+    }
+
+    void gte() {
+
+    }
+
+    // Special functions
+    void print(const std::string &arg) const {
+        // ToDo: Does const cause a compile error?
+        // ToDo: Does print pop
+        if(arg.empty()) {
+            if(stackTop <= 0) {
+                std::cerr << "Error: Stack is empty. Nothing to print." << std::endl;
+                return;
+            }
+            std::cout << stackTop << std::endl;
+        } else {
+            std::cout << arg << std::endl;
+        }
+    }
+
+    void read() {
+        std::cin >> memoryStack[stackTop];
+        generalPurposeRegister = memoryStack[stackTop];
+        stackTop++;
+    }
+
+    void end(const std::string &arg) {
+        if(arg.empty()) {
+            generalPurposeRegister = std::stoi(arg);
+        } else if(arg == "bp") {
+            basePointer = std::stoi(arg);
+        } else if(arg == "top") {
+            stackTop = std::stoi(arg);
+        } else {
+            memoryStack[stackTop++] = std::stoi(arg);
+        }
+        exit(memoryStack[stackTop - 1]);
+    }
+
+    void label(const std::string &arg) {
+
+    }
+
+    // Instruction stack functions
     static std::vector<std::string> parseLine(std::string &instruction) {
         // Strip any comments from the instruction line.
         if(size_t position = instruction.find(';'); position != std::string::npos) {
