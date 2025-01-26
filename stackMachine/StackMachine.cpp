@@ -6,6 +6,7 @@
 #include <sstream>
 #include <unordered_map>
 #include <variant>
+#include <bits/fs_path.h>
 
 #define MAX_INSTRUCTION_COUNT 1024
 
@@ -26,13 +27,38 @@ private:
 
 public:
     StackMachine() {
-        // instructionImplementationMap["push"] = std::bind(&StackMachine::push, this, std::placeholders::_1);
+        // Memory state function initializations
         instructionImplementationMap["push"] = [this](const std::string &arg) {push(arg);};
         instructionImplementationMap["pop"] = [this](const std::string &arg) {pop(arg);};
         instructionImplementationMap["dup"] = [this]() {dup();};
 
 
 
+
+        // Control of execution function initializations
+
+
+
+
+
+
+
+        // Arithmetic function initializations
+        instructionImplementationMap["add"] = [this]() {add();};
+        instructionImplementationMap["sub"] = [this]() {sub();};
+        instructionImplementationMap["mul"] = [this]() {mul();};
+        instructionImplementationMap["div"] = [this]() {div();};
+        instructionImplementationMap["mod"] = [this]() {mod();};
+
+        // Relational function initializations
+        instructionImplementationMap["eq"] = [this]() {eq();};
+        instructionImplementationMap["neq"] = [this]() {neq();};
+        instructionImplementationMap["lt"] = [this]() {lt();};
+        instructionImplementationMap["lte"] = [this]() {lte();};
+        instructionImplementationMap["gt"] = [this]() {gt();};
+        instructionImplementationMap["gte"] = [this]() {gte();};
+
+        // // Special function initializations
         instructionImplementationMap["print"] = [this](const std::string &arg) {print(arg);};
         instructionImplementationMap["read"] = [this]() {read();};
         instructionImplementationMap["end"] = [this](const std::string &arg) {end(arg);};
@@ -42,7 +68,7 @@ public:
         
     }
 
-    // Memory stack functions
+    // Memory state functions
     void push(const std::string &arg) {
         if (arg.empty()) {
             std::cerr << "Error: push requires an argument" << std::endl;
