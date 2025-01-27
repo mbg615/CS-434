@@ -17,6 +17,7 @@ private:
 
     // Instruction model
     std::string instructionQueue[MAX_INSTRUCTION_COUNT][2];
+    std::unordered_map<std::string, int> labelMap;
     int instructionCounter = 0; // (pc) Next instruction to execute
 
     // Stack model
@@ -24,18 +25,27 @@ private:
     int stackTop = 0; // (top) Next open slot in memory stack
     int basePointer = 0; // (bp) Base frame of current function
 
+    static int validAddress(const int addr) {
+        if (addr >= 4096) {
+            std::cerr << "Stack overflow" << std::endl;
+            return 0;
+        } if (addr <= 0) {
+            std::cerr << "Stack underflow" << std::endl;
+            return 0;
+        }
+        return 1;
+    }
+
 public:
     StackMachine() {
         // Memory state function initializations
         instructionImplementationMap["push"] = [this](const std::string &arg) {push(arg);};
         instructionImplementationMap["pop"] = [this](const std::string &arg) {pop(arg);};
         instructionImplementationMap["dup"] = [this]() {dup();};
-
-
-
+        instructionImplementationMap["load"] = [this](const std::string &arg) {load(arg);};
+        instructionImplementationMap["save"] = [this](const std::string &arg) {save(arg);};
 
         // Control of execution function initializations
-
 
 
 
@@ -61,10 +71,6 @@ public:
         instructionImplementationMap["print"] = [this](const std::string &arg) {print(arg);};
         instructionImplementationMap["read"] = [this]() {read();};
         instructionImplementationMap["end"] = [this](const std::string &arg) {end(arg);};
-
-
-
-        
     }
 
     // Memory state functions
@@ -92,10 +98,8 @@ public:
     }
 
     void pop(const std::string &arg) {
-        if (stackTop <= 0) {
-            std::cerr << "Error: stack underflow" << std::endl;
-            return;
-        }
+        if (!validAddress(stackTop)) return;
+
         if(arg == "top") {
             stackTop = memoryStack[--stackTop];
             std::cout << "Popped " << stackTop << " from the stack" << std::endl;
@@ -110,28 +114,49 @@ public:
     }
 
     void dup() {
-        if (stackTop <= 0) {
-            std::cerr << "Error: stack underflow" << std::endl;
-            return;
-        }
-        if (stackTop >= MAX_INSTRUCTION_COUNT) {
-            std::cerr << "Error: stack overflow" << std::endl;
-            return;
-        }
+        if (!validAddress(stackTop)) return;
         memoryStack[stackTop++] = generalPurposeRegister = memoryStack[stackTop - 1];
         std::cout << "Duplicated " << generalPurposeRegister << " onto the stack" << std::endl;
     }
 
     void load(const std::string &arg) {
+        pop(std::string());
+        int addr = generalPurposeRegister;
+        if (arg == "bp") {
+            addr += basePointer;
+        } else if (arg == "top") {
+            addr += stackTop - 1;
+        }
 
+        if (!validAddress(addr)) return;
+        push(std::to_string(memoryStack[addr]));
     }
 
     void save(const std::string &arg) {
+        pop(std::string());
+        int addr = generalPurposeRegister;
+        if (arg == "bp") {
+            addr += basePointer;
+        } else if (arg == "top") {
+            addr += stackTop - 1;
+        }
 
+        if (!validAddress(addr)) return;
+        memoryStack[addr] = generalPurposeRegister = memoryStack[stackTop - 1];
     }
 
     void store(const std::string &arg) {
+        pop(std::string());
+        int addr = generalPurposeRegister;
+        if (arg == "bp") {
+            addr += basePointer;
+        } else if (arg == "top") {
+            addr += stackTop - 1;
+        }
 
+        if (!validAddress(addr)) return;
+        memoryStack[addr] = generalPurposeRegister = memoryStack[stackTop - 1];
+        pop(std::string());
     }
 
     // Control of execution functions
@@ -139,11 +164,8 @@ public:
 
     }
 
+    // ret and retv are both handled in this method
     void ret(const std::string &arg) {
-
-    }
-
-    void retv(const std::string &arg) {
 
     }
 
@@ -161,10 +183,7 @@ public:
 
     // Arithmetic functions
     void add() {
-        if (stackTop <= 2) {
-            std::cerr << "Error: stack underflow" << std::endl;
-            return;
-        }
+        if (!validAddress(stackTop)) return;
         pop(std::string());
         const int temp = generalPurposeRegister;
         pop(std::string());
@@ -173,10 +192,7 @@ public:
     }
 
     void sub() {
-        if (stackTop <= 2) {
-            std::cerr << "Error: stack underflow" << std::endl;
-            return;
-        }
+        if (!validAddress(stackTop)) return;
         pop(std::string());
         const int temp = generalPurposeRegister;
         pop(std::string());
@@ -185,10 +201,7 @@ public:
     }
 
     void mul() {
-        if (stackTop <= 2) {
-            std::cerr << "Error: stack underflow" << std::endl;
-            return;
-        }
+        if (!validAddress(stackTop)) return;
         pop(std::string());
         const int temp = generalPurposeRegister;
         pop(std::string());
@@ -197,10 +210,7 @@ public:
     }
 
     void div() {
-        if (stackTop <= 2) {
-            std::cerr << "Error: stack underflow" << std::endl;
-            return;
-        }
+        if (!validAddress(stackTop)) return;
         pop(std::string());
         const int temp = generalPurposeRegister;
         pop(std::string());
@@ -209,10 +219,7 @@ public:
     }
 
     void mod() {
-        if (stackTop <= 2) {
-            std::cerr << "Error: stack underflow" << std::endl;
-            return;
-        }
+        if (!validAddress(stackTop)) return;
         pop(std::string());
         const int temp = generalPurposeRegister;
         pop(std::string());
@@ -222,10 +229,7 @@ public:
 
     // Relational operator functions
     void eq() {
-        if (stackTop <= 2) {
-            std::cerr << "Error: stack underflow" << std::endl;
-            return;
-        }
+        if (!validAddress(stackTop)) return;
         pop(std::string());
         const int temp = generalPurposeRegister;
         pop(std::string());
@@ -234,10 +238,7 @@ public:
     }
 
     void neq() {
-        if (stackTop <= 2) {
-            std::cerr << "Error: stack underflow" << std::endl;
-            return;
-        }
+        if (!validAddress(stackTop)) return;
         pop(std::string());
         const int temp = generalPurposeRegister;
         pop(std::string());
@@ -246,10 +247,7 @@ public:
     }
 
     void lt() {
-        if (stackTop <= 2) {
-            std::cerr << "Error: stack underflow" << std::endl;
-            return;
-        }
+        if (!validAddress(stackTop)) return;
         pop(std::string());
         const int temp = generalPurposeRegister;
         pop(std::string());
@@ -258,10 +256,7 @@ public:
     }
 
     void lte() {
-        if (stackTop <= 2) {
-            std::cerr << "Error: stack underflow" << std::endl;
-            return;
-        }
+        if (!validAddress(stackTop)) return;
         pop(std::string());
         const int temp = generalPurposeRegister;
         pop(std::string());
@@ -270,10 +265,7 @@ public:
     }
 
     void gt() {
-        if (stackTop <= 2) {
-            std::cerr << "Error: stack underflow" << std::endl;
-            return;
-        }
+        if (!validAddress(stackTop)) return;
         pop(std::string());
         const int temp = generalPurposeRegister;
         pop(std::string());
@@ -282,10 +274,7 @@ public:
     }
 
     void gte() {
-        if (stackTop <= 2) {
-            std::cerr << "Error: stack underflow" << std::endl;
-            return;
-        }
+        if (!validAddress(stackTop)) return;
         pop(std::string());
         const int temp = generalPurposeRegister;
         pop(std::string());
@@ -294,9 +283,7 @@ public:
     }
 
     // Special functions
-    void print(const std::string &arg) const {
-        // ToDo: Does const cause a compile error?
-        // ToDo: Does print pop
+    void print(const std::string &arg) {
         if(arg.empty()) {
             if(stackTop <= 0) {
                 std::cerr << "Error: Stack is empty. Nothing to print." << std::endl;
@@ -327,11 +314,8 @@ public:
         exit(memoryStack[stackTop - 1]);
     }
 
-    void label(const std::string &arg) {
 
-    }
 
-    // Instruction stack functions
     static std::vector<std::string> parseLine(std::string &instruction) {
         // Strip any comments from the instruction line.
         if(size_t position = instruction.find(';'); position != std::string::npos) {
