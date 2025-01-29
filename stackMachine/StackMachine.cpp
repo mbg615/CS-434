@@ -27,7 +27,7 @@ private:
         if (addr >= 4096) {
             std::cerr << "Stack overflow" << std::endl;
             return 0;
-        } if (addr <= 0) {
+        } if (addr < 0) {
             std::cerr << "Stack underflow" << std::endl;
             return 0;
         }
@@ -42,13 +42,15 @@ public:
         instructionImplementationMap["dup"] = [this]() {dup();};
         instructionImplementationMap["load"] = [this](const std::string &arg) {load(arg);};
         instructionImplementationMap["save"] = [this](const std::string &arg) {save(arg);};
+        instructionImplementationMap["store"] = [this](const std::string &arg) {store(arg);};
 
         // Control of execution function initializations
-
-
-
-
-
+        instructionImplementationMap["call"] = [this](const std::string &arg) {call(arg);};
+        instructionImplementationMap["ret"] = [this]() {ret();};
+        instructionImplementationMap["retv"] = [this]() {retv();};
+        instructionImplementationMap["brt"] = [this](const std::string &arg) {brt(arg);};
+        instructionImplementationMap["brz"] = [this](const std::string &arg) {brz(arg);};
+        instructionImplementationMap["jump"] = [this](const std::string &arg) {jump(arg);};
 
         // Arithmetic function initializations
         instructionImplementationMap["add"] = [this]() {add();};
@@ -99,7 +101,6 @@ public:
         } else if(arg == "bp") {
             basePointer = memoryStack[--stackTop];
             std::cout << "Popped " << basePointer << " from the stack" << std::endl;
-
         } else {
             generalPurposeRegister = memoryStack[--stackTop];
             std::cout << "Popped " << generalPurposeRegister << " from the stack" << std::endl;
@@ -155,27 +156,58 @@ public:
     // Control of execution functions
     void call(const std::string &arg) {
         if (arg.empty()) {
-            std::cerr << "Error: push requires an argument" << std::endl;
+            std::cerr << "Error: call requires an argument" << std::endl;
             return;
         }
 
+        std::cout << "Ran Call \n";
+
     }
 
-    // ret and retv are both handled in this method
-    void ret(const std::string &arg) {
+    void ret() {
+
+    }
+
+    void retv() {
 
     }
 
     void brt(const std::string &arg) {
+        if (arg.empty()) {
+            std::cerr << "Error: brt requires an argument" << std::endl;
+            return;
+        }
 
+        pop(std::string());
+        if(generalPurposeRegister) {
+            jump(arg);
+        }
     }
 
     void brz(const std::string &arg) {
+        if (arg.empty()) {
+            std::cerr << "Error: brz requires an argument" << std::endl;
+            return;
+        }
 
+        pop(std::string());
+        if(!generalPurposeRegister) {
+            jump(arg);
+        }
     }
 
     void jump(const std::string &arg) {
+        if (arg.empty()) {
+            std::cerr << "Error: jump requires an argument" << std::endl;
+            return;
+        }
 
+        auto it = labelMap.find(arg);
+        if(it != labelMap.end()) {
+            instructionCounter = it->second;
+        } else {
+            std::cerr << "Error: label '" << arg << "' not found" << std::endl;
+        }
     }
 
     // Arithmetic functions
@@ -311,6 +343,33 @@ public:
         exit(memoryStack[stackTop - 1]);
     }
 
+    // Program execution functions
+    bool runProgram() {
+        while(true) {
+            std::string key = instructionQueue[instructionCounter][0];
+            std::string argument = instructionQueue[instructionCounter][1];
+
+            // Try and call the correct variant
+            if(instructionImplementationMap.contains(key)) {
+                auto& funcVariant = instructionImplementationMap[key];
+
+                if(std::holds_alternative<std::function<void(std::string)>>(funcVariant)) {
+                    std::get<std::function<void(std::string)>>(funcVariant)(argument);
+                } else if(std::holds_alternative<std::function<void()>>(funcVariant)) {
+                    std::get<std::function<void()>>(funcVariant)();
+                }
+            } else {
+                std::cerr << "Error: Instruction " << key << " not found!" <<std::endl;
+            }
+
+            if(key == "end") {
+                exit(stackTop - 1);
+            }
+
+            instructionCounter++;
+        }
+    }
+
     bool loadProgramFromFile(const std::string &filename) {
         std::ifstream programFile(filename);
         if(!programFile.is_open()) {
@@ -339,7 +398,12 @@ public:
             }
 
             std::string argument;
-            if(!(instructionStream >> argument)) argument.clear();
+            if (instructionStream >> std::ws && instructionStream.peek() == '"') {  // Handle quoted string argument
+                instructionStream.get(); // Remove the opening quote
+                std::getline(instructionStream, argument, '"'); // Read until closing quote
+            } else if(!(instructionStream >> argument)) {
+                argument.clear();
+            }
 
             if(index >= MAX_INSTRUCTION_COUNT) continue;
 
@@ -365,7 +429,7 @@ public:
 
     void printLabelMap() const {
         for (const auto& entry : labelMap) {
-            std::cout << "Label: " << entry.first << ", Value: " << entry.second << std::endl;
+            std::cout << "Location: " << entry.second << ", Label: " << entry.first << std::endl;
         }
     }
 
@@ -391,7 +455,7 @@ int main(int argc, char* argv[]) {
     std::cout << std::endl;
 
     stackMachine.printLabelMap();
-
+    stackMachine.runProgram();
 
     return 0;
 }
