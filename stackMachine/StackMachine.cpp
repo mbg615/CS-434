@@ -2,7 +2,6 @@
 #include <fstream>
 #include <functional>
 #include <string>
-#include <vector>
 #include <sstream>
 #include <unordered_map>
 #include <variant>
@@ -11,7 +10,6 @@
 
 class StackMachine {
 private:
-    //std::unordered_map<std::string, std::function<void(std::string)>> instructionImplementationMap;
     std::unordered_map<std::string, std::variant<std::function<void(std::string)>, std::function<void()>>> instructionImplementationMap;
     int generalPurposeRegister = 0; // General Purpose Register
 
@@ -79,15 +77,10 @@ public:
             std::cerr << "Error: push requires an argument" << std::endl;
             return;
         }
-        if (stackTop >= MAX_INSTRUCTION_COUNT) {
-            std::cerr << "Error: stack overflow" << std::endl;
-            return;
-        }
+        if (!validAddress(stackTop)) return;
 
         if(arg == "bp") {
-            if(basePointer <= 0 || basePointer >= MAX_INSTRUCTION_COUNT) {
-                return;
-            }
+            if (!validAddress(basePointer)) return;
             memoryStack[stackTop++] = generalPurposeRegister = memoryStack[basePointer];
         } else if(arg == "top") {
             memoryStack[stackTop++] = generalPurposeRegister = memoryStack[stackTop - 1];
@@ -161,24 +154,11 @@ public:
 
     // Control of execution functions
     void call(const std::string &arg) {
-        if(arg.empty()) {
-            if (!validAddress(stackTop)) return;
-            pop(std::string());
-            int funcAddr = generalPurposeRegister;
-
+        if (arg.empty()) {
+            std::cerr << "Error: push requires an argument" << std::endl;
+            return;
         }
 
-        // ToDO: Does call still have the numParams and function address on the stack when given an address?
-
-
-
-        pop(std::string());
-        int funcAddr = generalPurposeRegister;
-        pop(std::string()); // Eat numParms from the stack
-        push(std::to_string(instructionCounter + 1));
-        push(std::to_string(basePointer));
-        basePointer = stackTop - 1;
-        instructionCounter = funcAddr;
     }
 
     // ret and retv are both handled in this method
@@ -331,64 +311,64 @@ public:
         exit(memoryStack[stackTop - 1]);
     }
 
-
-
-    static std::vector<std::string> parseLine(std::string &instruction) {
-        // Strip any comments from the instruction line.
-        if(size_t position = instruction.find(';'); position != std::string::npos) {
-            instruction.erase(position);
-        }
-
-        std::vector<std::string> tokens;
-        std::istringstream stream(instruction);
-        std::string token;
-
-        while(stream >> token) {
-            if(token == "print") {
-                tokens.push_back(token);
-
-                std::string remaining;
-                std::getline(stream, remaining);
-
-
-                if (size_t position = remaining.find(" \t"); position != std::string::npos) {
-                    remaining = remaining.substr(position);
-                }
-
-                tokens.push_back(remaining);
-                break;
-
-            } else {
-                tokens.push_back(token);
-            }
-        }
-
-        return tokens;
-    }
-
     bool loadProgramFromFile(const std::string &filename) {
         std::ifstream programFile(filename);
         if(!programFile.is_open()) {
-            std::cerr << "Error: Could not open file " << filename << std::endl;
+            std::cerr << "Unable to open file " << filename << std::endl;
             return false;
         }
 
         int index = 0;
         std::string instruction;
 
-        while(std::getline(programFile, instruction) && index < MAX_INSTRUCTION_COUNT) {
-            parseLine(instruction);
+        while(std::getline(programFile, instruction)) {
+            if(instruction.empty()) continue;
+
+            // Remove ; -->
+            if(const size_t pos = instruction.find(';'); pos != std::string::npos) {
+                instruction.erase(pos);
+            }
+
+            std::istringstream instructionStream(instruction);
+            std::string token;
+            if(!(instructionStream >> token)) continue;
+
+            // Add labels to the label map as they are found
+            if(!instructionImplementationMap.contains(token)) {
+                labelMap[token] = index;
+            }
+
+            std::string argument;
+            if(!(instructionStream >> argument)) argument.clear();
+
+            if(index >= MAX_INSTRUCTION_COUNT) continue;
+
+            instructionQueue[index][0] = token;
+            instructionQueue[index][1] = argument;
+
             index++;
         }
 
-        programFile.close();
-
-        if(index >= MAX_INSTRUCTION_COUNT) {
+        if (index >= MAX_INSTRUCTION_COUNT) {
             std::cerr << "Warning: Program truncated to fit instruction memory" << std::endl;
         }
 
         return true;
     }
+
+    void printInstructionQueue() const {
+        for (int i = 0; i < MAX_INSTRUCTION_COUNT; ++i) {
+            if(instructionQueue[i][0] == "" && instructionQueue[i][1] == "") continue;
+            std::cout << "Instruction " << i << ": " << instructionQueue[i][0] << " " << instructionQueue[i][1] << std::endl;
+        }
+    }
+
+    void printLabelMap() const {
+        for (const auto& entry : labelMap) {
+            std::cout << "Label: " << entry.first << ", Value: " << entry.second << std::endl;
+        }
+    }
+
 };
 
 int main(int argc, char* argv[]) {
@@ -401,10 +381,16 @@ int main(int argc, char* argv[]) {
 
     StackMachine stackMachine;
 
-    if(!stackMachine.loadProgramFromFile(argv[1])){
+    if(!stackMachine.loadProgramFromFile(argv[1])) {
         std::cerr << "Error: " << argv[1] << " does not exist" << std::endl;
         return 1;
     }
+
+    stackMachine.printInstructionQueue();
+
+    std::cout << std::endl;
+
+    stackMachine.printLabelMap();
 
 
     return 0;
