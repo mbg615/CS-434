@@ -161,7 +161,24 @@ public:
 
     // Control of execution functions
     void call(const std::string &arg) {
+        if(arg.empty()) {
+            if (!validAddress(stackTop)) return;
+            pop(std::string());
+            int funcAddr = generalPurposeRegister;
 
+        }
+
+        // ToDO: Does call still have the numParams and function address on the stack when given an address?
+
+
+
+        pop(std::string());
+        int funcAddr = generalPurposeRegister;
+        pop(std::string()); // Eat numParms from the stack
+        push(std::to_string(instructionCounter + 1));
+        push(std::to_string(basePointer));
+        basePointer = stackTop - 1;
+        instructionCounter = funcAddr;
     }
 
     // ret and retv are both handled in this method
@@ -380,7 +397,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::cout << "C++ based Stack Machine evaluating " << argv[0] << "\n" << std::endl;
+    std::cout << "C++ based Stack Machine evaluating " << argv[1] << "\n" << std::endl;
 
     StackMachine stackMachine;
 
