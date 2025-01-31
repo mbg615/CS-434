@@ -2,26 +2,26 @@
 
 GCD                                         ; GCD Label
 	push 1                                  ; Push 1 to top of stack
-	load BP
+	load bp
 	push 0                                  ; Push 0 to top of stack
 	eq
 	brz LABEL1                              ; Branch on 0 to LABEL1
 	push 0                                  ; Push 0 to top of stack
-	load BP
+	load bp
 	retv
 	jump LABEL2                             ; Jump to label LABEL2
 LABEL1                                      ; LABEL1 label
 	push 1
-	load BP
+	load bp
 	push 0                                  ; Push 0 to top of stack
-	load BP
+	load bp
 	push 0                                  ; Push 0 to top of stack
-	load BP
+	load bp
 	push 1                                  ; Push 1 to top of stack
-	load BP
+	load bp
 	div
 	push 1                                  ; Push 1 to top of stack
-	load BP
+	load bp
 	mul
 	sub
 	push 2                                  ; Push 2 to top of stack
@@ -36,18 +36,18 @@ MAIN                                        ; MAIN label
 	print "Enter the first number:\t"
 	read
 	push 0                                  ; Push 1 to top of stack
-	store BP
+	store bp
 	print "Enter the second number:\t"
 	read
 	push 1                                  ; Push 1 to top of stack
-	store BP
+	store bp
 	push 0                                  ; Push 0 to top of stack
-	load BP
+	load bp
 	push 1                                  ; Push 1 to top of stack
-	load BP
+	load bp
 	push 2                                  ; Push 2 to top of stack
-	call GCD
+	call GCD                                ; Call the GCD function (2 args)
 	print "Greatest Common Divisor:\t"
 	print
 	print "\n"
-	end BP                                  ; End with BP as status
+	end bp                                  ; End with bp as status

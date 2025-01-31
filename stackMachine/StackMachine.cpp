@@ -160,15 +160,21 @@ public:
             return;
         }
 
-        std::cout << "Ran Call \n";
+        // ToDo: Implement call
 
     }
 
     void ret() {
 
+        // ToDo: Implement ret
+
+
     }
 
     void retv() {
+
+        // ToDo: Implement retv
+
 
     }
 
@@ -179,7 +185,7 @@ public:
         }
 
         pop(std::string());
-        if(generalPurposeRegister) {
+        if(generalPurposeRegister == 1) {
             jump(arg);
         }
     }
@@ -191,7 +197,7 @@ public:
         }
 
         pop(std::string());
-        if(!generalPurposeRegister) {
+        if(generalPurposeRegister == 0) {
             jump(arg);
         }
     }
@@ -313,14 +319,30 @@ public:
 
     // Special functions
     void print(const std::string &arg) {
-        if(arg.empty()) {
-            if(stackTop <= 0) {
+        if (arg.empty()) {
+            if (stackTop <= 0) {
                 std::cerr << "Error: Stack is empty. Nothing to print." << std::endl;
                 return;
             }
-            std::cout << stackTop << std::endl;
+            std::cout << memoryStack[stackTop - 1] << std::endl;
         } else {
-            std::cout << arg << std::endl;
+            std::string formattedArg;
+            for (size_t i = 0; i < arg.length(); ++i) {
+                if (arg[i] == '\\' && i + 1 < arg.length()) {
+                    if (arg[i + 1] == 'n') {
+                        formattedArg += '\n';
+                        ++i; // Skip next character
+                    } else if (arg[i + 1] == 't') {
+                        formattedArg += '\t';
+                        ++i; // Skip next character
+                    } else {
+                        formattedArg += arg[i];
+                    }
+                } else {
+                    formattedArg += arg[i];
+                }
+            }
+            std::cout << formattedArg << std::endl;
         }
     }
 
@@ -332,29 +354,32 @@ public:
 
     void end(const std::string &arg) {
         if(arg.empty()) {
-            generalPurposeRegister = std::stoi(arg);
+            push(std::to_string(generalPurposeRegister));
+            exit(generalPurposeRegister);
         } else if(arg == "bp") {
-            basePointer = std::stoi(arg);
+            push(std::to_string(basePointer));
+            exit(basePointer);
         } else if(arg == "top") {
-            stackTop = std::stoi(arg);
+            push(std::to_string(stackTop));
+            exit(stackTop);
         } else {
-            memoryStack[stackTop++] = std::stoi(arg);
+            push(arg);
+            exit(memoryStack[stackTop - 1]);
         }
-        exit(memoryStack[stackTop - 1]);
     }
 
     // Program execution functions
     bool runProgram() {
         while(true) {
             std::string key = instructionQueue[instructionCounter][0];
-            std::string argument = instructionQueue[instructionCounter][1];
+            std::string value = instructionQueue[instructionCounter][1];
 
             // Try and call the correct variant
             if(instructionImplementationMap.contains(key)) {
                 auto& funcVariant = instructionImplementationMap[key];
 
                 if(std::holds_alternative<std::function<void(std::string)>>(funcVariant)) {
-                    std::get<std::function<void(std::string)>>(funcVariant)(argument);
+                    std::get<std::function<void(std::string)>>(funcVariant)(value);
                 } else if(std::holds_alternative<std::function<void()>>(funcVariant)) {
                     std::get<std::function<void()>>(funcVariant)();
                 }
@@ -422,7 +447,7 @@ public:
 
     void printInstructionQueue() const {
         for (int i = 0; i < MAX_INSTRUCTION_COUNT; ++i) {
-            if(instructionQueue[i][0] == "" && instructionQueue[i][1] == "") continue;
+            if(instructionQueue[i][0].empty() && instructionQueue[i][1].empty()) continue;
             std::cout << "Instruction " << i << ": " << instructionQueue[i][0] << " " << instructionQueue[i][1] << std::endl;
         }
     }
@@ -451,10 +476,11 @@ int main(int argc, char* argv[]) {
     }
 
     stackMachine.printInstructionQueue();
+    std::cout << std::endl;
+    stackMachine.printLabelMap();
 
     std::cout << std::endl;
 
-    stackMachine.printLabelMap();
     stackMachine.runProgram();
 
     return 0;
