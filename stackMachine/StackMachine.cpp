@@ -5,6 +5,7 @@
 #include <sstream>
 #include <unordered_map>
 #include <variant>
+#include <vector>
 
 #define MAX_INSTRUCTION_COUNT 1024
 
@@ -22,6 +23,7 @@ private:
     int memoryStack[4096]{};
     int stackTop = 0; // (top) Next open slot in memory stack
     int basePointer = 0; // (bp) Base frame of current function
+    std::vector<int> returnAddressStack;
 
     static int validAddress(const int addr) {
         if (addr >= 4096) {
@@ -39,6 +41,7 @@ public:
         // Memory state function initializations
         instructionImplementationMap["push"] = [this](const std::string &arg) {push(arg);};
         instructionImplementationMap["pop"] = [this](const std::string &arg) {pop(arg);};
+        instructionImplementationMap["pop"] = [this]() {pop();};
         instructionImplementationMap["dup"] = [this]() {dup();};
         instructionImplementationMap["load"] = [this](const std::string &arg) {load(arg);};
         instructionImplementationMap["save"] = [this](const std::string &arg) {save(arg);};
@@ -105,16 +108,26 @@ public:
             generalPurposeRegister = memoryStack[--stackTop];
             std::cout << "Popped " << generalPurposeRegister << " from the stack" << std::endl;
         }
+
+        memoryStack[stackTop] = 0;
+    }
+
+    void pop() {
+        if (!validAddress(stackTop)) return;
+        generalPurposeRegister = memoryStack[--stackTop];
+        std::cout << "Popped " << generalPurposeRegister << " from the stack" << std::endl;
+        memoryStack[stackTop] = 0;
     }
 
     void dup() {
         if (!validAddress(stackTop)) return;
-        memoryStack[stackTop++] = generalPurposeRegister = memoryStack[stackTop - 1];
+        memoryStack[stackTop] = generalPurposeRegister = memoryStack[stackTop - 1];
+        stackTop++;
         std::cout << "Duplicated " << generalPurposeRegister << " onto the stack" << std::endl;
     }
 
     void load(const std::string &arg) {
-        pop(std::string());
+        pop();
         int addr = generalPurposeRegister;
         if (arg == "bp") {
             addr += basePointer;
@@ -127,7 +140,7 @@ public:
     }
 
     void save(const std::string &arg) {
-        pop(std::string());
+        pop();
         int addr = generalPurposeRegister;
         if (arg == "bp") {
             addr += basePointer;
@@ -140,7 +153,7 @@ public:
     }
 
     void store(const std::string &arg) {
-        pop(std::string());
+        pop();
         int addr = generalPurposeRegister;
         if (arg == "bp") {
             addr += basePointer;
@@ -150,32 +163,70 @@ public:
 
         if (!validAddress(addr)) return;
         memoryStack[addr] = generalPurposeRegister = memoryStack[stackTop - 1];
-        pop(std::string());
+        pop();
     }
 
-    // Control of execution functions
     void call(const std::string &arg) {
         if (arg.empty()) {
             std::cerr << "Error: call requires an argument" << std::endl;
             return;
         }
 
-        // ToDo: Implement call
+        // Print current stack before modifying it
+        std::cerr << "CALL: Stack before function call:\n";
 
+        int argNum = generalPurposeRegister;
+        std::cerr << "CALL: Number of arguments = " << argNum << std::endl;
+
+        if (argNum < 0 || argNum > 4096) {
+            std::cerr << "Error: Invalid number of arguments: " << argNum << std::endl;
+            return;
+        }
+
+        // Store function arguments
+        std::vector<int> functionArgs(argNum);
+        for (int i = 0; i < argNum; i++) {
+            pop();
+            functionArgs[i] = generalPurposeRegister;
+            std::cerr << "CALL: Popped argument " << i << " = " << functionArgs[i] << std::endl;
+        }
+
+        // Push the current base pointer (saved frame pointer)
+        std::cerr << "CALL: Pushing base pointer = " << basePointer << std::endl;
+        push(std::to_string(basePointer));
+
+        // Push the return address
+        std::cerr << "CALL: Pushing return address = " << instructionCounter + 1 << std::endl;
+        push(std::to_string(instructionCounter + 1));
+
+        // Update base pointer to the new stack frame
+        basePointer = stackTop - 1; // Point to saved BP
+        std::cerr << "CALL: Updated base pointer to " << basePointer << std::endl;
+
+        // Push function arguments back in order
+        for (int i = argNum - 1; i >= 0; i--) {
+            push(std::to_string(functionArgs[i]));
+            std::cerr << "CALL: Pushed argument " << i << " = " << functionArgs[i] << std::endl;
+        }
+
+        // Print stack after pushing everything
+        std::cerr << "CALL: Stack after setting up function call:\n";
+
+        // Jump to function
+        std::cerr << "CALL: Jumping to function " << arg << std::endl;
+        jump(arg);
     }
 
     void ret() {
-
-        // ToDo: Implement ret
-
-
+        instructionCounter = memoryStack[basePointer];
+        basePointer = memoryStack[basePointer - 1];
     }
 
     void retv() {
-
-        // ToDo: Implement retv
-
-
+        pop();
+        instructionCounter = memoryStack[basePointer];
+        basePointer = memoryStack[basePointer - 1];
+        push(std::to_string(generalPurposeRegister));
     }
 
     void brt(const std::string &arg) {
@@ -184,7 +235,7 @@ public:
             return;
         }
 
-        pop(std::string());
+        pop();
         if(generalPurposeRegister == 1) {
             jump(arg);
         }
@@ -196,7 +247,7 @@ public:
             return;
         }
 
-        pop(std::string());
+        pop();
         if(generalPurposeRegister == 0) {
             jump(arg);
         }
@@ -219,45 +270,45 @@ public:
     // Arithmetic functions
     void add() {
         if (!validAddress(stackTop)) return;
-        pop(std::string());
+        pop();
         const int temp = generalPurposeRegister;
-        pop(std::string());
+        pop();
         generalPurposeRegister += temp;
         push(std::to_string(generalPurposeRegister));
     }
 
     void sub() {
         if (!validAddress(stackTop)) return;
-        pop(std::string());
+        pop();
         const int temp = generalPurposeRegister;
-        pop(std::string());
+        pop();
         generalPurposeRegister -= temp;
         push(std::to_string(generalPurposeRegister));
     }
 
     void mul() {
         if (!validAddress(stackTop)) return;
-        pop(std::string());
+        pop();
         const int temp = generalPurposeRegister;
-        pop(std::string());
+        pop();
         generalPurposeRegister *= temp;
         push(std::to_string(generalPurposeRegister));
     }
 
     void div() {
         if (!validAddress(stackTop)) return;
-        pop(std::string());
+        pop();
         const int temp = generalPurposeRegister;
-        pop(std::string());
+        pop();
         generalPurposeRegister /= temp;
         push(std::to_string(generalPurposeRegister));
     }
 
     void mod() {
         if (!validAddress(stackTop)) return;
-        pop(std::string());
+        pop();
         const int temp = generalPurposeRegister;
-        pop(std::string());
+        pop();
         generalPurposeRegister %= temp;
         push(std::to_string(generalPurposeRegister));
     }
@@ -265,54 +316,54 @@ public:
     // Relational operator functions
     void eq() {
         if (!validAddress(stackTop)) return;
-        pop(std::string());
+        pop();
         const int temp = generalPurposeRegister;
-        pop(std::string());
+        pop();
         generalPurposeRegister = temp == generalPurposeRegister;
         push(std::to_string(generalPurposeRegister));
     }
 
     void neq() {
         if (!validAddress(stackTop)) return;
-        pop(std::string());
+        pop();
         const int temp = generalPurposeRegister;
-        pop(std::string());
+        pop();
         generalPurposeRegister = temp != generalPurposeRegister;
         push(std::to_string(generalPurposeRegister));
     }
 
     void lt() {
         if (!validAddress(stackTop)) return;
-        pop(std::string());
+        pop();
         const int temp = generalPurposeRegister;
-        pop(std::string());
+        pop();
         generalPurposeRegister = generalPurposeRegister < temp;
         push(std::to_string(generalPurposeRegister));
     }
 
     void lte() {
         if (!validAddress(stackTop)) return;
-        pop(std::string());
+        pop();
         const int temp = generalPurposeRegister;
-        pop(std::string());
+        pop();
         generalPurposeRegister = generalPurposeRegister <= temp;
         push(std::to_string(generalPurposeRegister));
     }
 
     void gt() {
         if (!validAddress(stackTop)) return;
-        pop(std::string());
+        pop();
         const int temp = generalPurposeRegister;
-        pop(std::string());
+        pop();
         generalPurposeRegister = generalPurposeRegister > temp;
         push(std::to_string(generalPurposeRegister));
     }
 
     void gte() {
         if (!validAddress(stackTop)) return;
-        pop(std::string());
+        pop();
         const int temp = generalPurposeRegister;
-        pop(std::string());
+        pop();
         generalPurposeRegister = generalPurposeRegister >= temp;
         push(std::to_string(generalPurposeRegister));
     }
@@ -348,8 +399,7 @@ public:
 
     void read() {
         std::cin >> memoryStack[stackTop];
-        generalPurposeRegister = memoryStack[stackTop];
-        stackTop++;
+        generalPurposeRegister = memoryStack[stackTop++];
     }
 
     void end(const std::string &arg) {
@@ -478,7 +528,6 @@ int main(int argc, char* argv[]) {
     stackMachine.printInstructionQueue();
     std::cout << std::endl;
     stackMachine.printLabelMap();
-
     std::cout << std::endl;
 
     stackMachine.runProgram();
