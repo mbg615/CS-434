@@ -23,7 +23,6 @@ private:
     int memoryStack[4096]{};
     int stackTop = 0; // (top) Next open slot in memory stack
     int basePointer = 0; // (bp) Base frame of current function
-    std::vector<int> returnAddressStack;
 
     static int validAddress(const int addr) {
         if (addr >= 4096) {
@@ -167,66 +166,15 @@ public:
     }
 
     void call(const std::string &arg) {
-        if (arg.empty()) {
-            std::cerr << "Error: call requires an argument" << std::endl;
-            return;
-        }
 
-        // Print current stack before modifying it
-        std::cerr << "CALL: Stack before function call:\n";
-
-        int argNum = generalPurposeRegister;
-        std::cerr << "CALL: Number of arguments = " << argNum << std::endl;
-
-        if (argNum < 0 || argNum > 4096) {
-            std::cerr << "Error: Invalid number of arguments: " << argNum << std::endl;
-            return;
-        }
-
-        // Store function arguments
-        std::vector<int> functionArgs(argNum);
-        for (int i = 0; i < argNum; i++) {
-            pop();
-            functionArgs[i] = generalPurposeRegister;
-            std::cerr << "CALL: Popped argument " << i << " = " << functionArgs[i] << std::endl;
-        }
-
-        // Push the current base pointer (saved frame pointer)
-        std::cerr << "CALL: Pushing base pointer = " << basePointer << std::endl;
-        push(std::to_string(basePointer));
-
-        // Push the return address
-        std::cerr << "CALL: Pushing return address = " << instructionCounter + 1 << std::endl;
-        push(std::to_string(instructionCounter + 1));
-
-        // Update base pointer to the new stack frame
-        basePointer = stackTop - 1; // Point to saved BP
-        std::cerr << "CALL: Updated base pointer to " << basePointer << std::endl;
-
-        // Push function arguments back in order
-        for (int i = argNum - 1; i >= 0; i--) {
-            push(std::to_string(functionArgs[i]));
-            std::cerr << "CALL: Pushed argument " << i << " = " << functionArgs[i] << std::endl;
-        }
-
-        // Print stack after pushing everything
-        std::cerr << "CALL: Stack after setting up function call:\n";
-
-        // Jump to function
-        std::cerr << "CALL: Jumping to function " << arg << std::endl;
-        jump(arg);
     }
 
     void ret() {
-        instructionCounter = memoryStack[basePointer];
-        basePointer = memoryStack[basePointer - 1];
+
     }
 
     void retv() {
-        pop();
-        instructionCounter = memoryStack[basePointer];
-        basePointer = memoryStack[basePointer - 1];
-        push(std::to_string(generalPurposeRegister));
+
     }
 
     void brt(const std::string &arg) {
