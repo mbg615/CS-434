@@ -40,7 +40,6 @@ public:
         // Memory state function initializations
         instructionImplementationMap["push"] = [this](const std::string &arg) {push(arg);};
         instructionImplementationMap["pop"] = [this](const std::string &arg) {pop(arg);};
-        instructionImplementationMap["pop"] = [this]() {pop();};
         instructionImplementationMap["dup"] = [this]() {dup();};
         instructionImplementationMap["load"] = [this](const std::string &arg) {load(arg);};
         instructionImplementationMap["save"] = [this](const std::string &arg) {save(arg);};
@@ -94,6 +93,12 @@ public:
         std::cout << "Pushed " << generalPurposeRegister << " onto the stack" << std::endl;
     }
 
+    void push(int arg) { // Internal implementation of pop
+        if (!validAddress(stackTop)) return;
+        memoryStack[stackTop++] = generalPurposeRegister = arg;
+        std::cout << "Pushed " << generalPurposeRegister << " onto the stack" << std::endl;
+    }
+
     void pop(const std::string &arg) {
         if (!validAddress(stackTop)) return;
 
@@ -135,7 +140,7 @@ public:
         }
 
         if (!validAddress(addr)) return;
-        push(std::to_string(memoryStack[addr]));
+        push(memoryStack[addr]);
     }
 
     void save(const std::string &arg) {
@@ -166,15 +171,54 @@ public:
     }
 
     void call(const std::string &arg) {
+        if (arg.empty()) {
+            std::cerr << "Error: call requires a label argument" << std::endl;
+            return;
+        }
 
+        auto it = labelMap.find(arg);
+        if(it == labelMap.end()) {
+            std::cerr << "Error: Label '" << arg << "' not found" << std::endl;
+            return;
+        }
+
+        pop();
+        int numberOfArgs = generalPurposeRegister;
+        std::vector<int> argList;
+
+        for(int i = 0; i < numberOfArgs; i++) {
+            pop();
+            argList.push_back(generalPurposeRegister);
+        }
+
+        push(instructionCounter);
+        push(basePointer);
+        basePointer = stackTop - 1;
+
+        for(int i = numberOfArgs - 1; i >= 0; i--) {
+            push(argList.at(i));
+        }
+
+        jump(arg);
     }
 
     void ret() {
-
+        stackTop = basePointer + 1;
+        pop();
+        basePointer = generalPurposeRegister;
+        pop();
+        instructionCounter = generalPurposeRegister;
     }
 
     void retv() {
-
+        pop();
+        int returnVal = generalPurposeRegister;
+        stackTop = basePointer + 1;
+        pop();
+        basePointer = generalPurposeRegister;
+        pop();
+        instructionCounter = generalPurposeRegister;
+        push(returnVal);
     }
 
     void brt(const std::string &arg) {
@@ -222,7 +266,7 @@ public:
         const int temp = generalPurposeRegister;
         pop();
         generalPurposeRegister += temp;
-        push(std::to_string(generalPurposeRegister));
+        push(generalPurposeRegister);
     }
 
     void sub() {
@@ -231,7 +275,7 @@ public:
         const int temp = generalPurposeRegister;
         pop();
         generalPurposeRegister -= temp;
-        push(std::to_string(generalPurposeRegister));
+        push(generalPurposeRegister);
     }
 
     void mul() {
@@ -240,25 +284,33 @@ public:
         const int temp = generalPurposeRegister;
         pop();
         generalPurposeRegister *= temp;
-        push(std::to_string(generalPurposeRegister));
+        push(generalPurposeRegister);
     }
 
     void div() {
         if (!validAddress(stackTop)) return;
         pop();
         const int temp = generalPurposeRegister;
+        if(temp == 0) {
+            std::cerr << "Error: Division by zero" << std::endl;
+            return;
+        }
         pop();
         generalPurposeRegister /= temp;
-        push(std::to_string(generalPurposeRegister));
+        push(generalPurposeRegister);
     }
 
     void mod() {
         if (!validAddress(stackTop)) return;
         pop();
         const int temp = generalPurposeRegister;
+        if(temp == 0) {
+            std::cerr << "Error: Division by zero" << std::endl;
+            return;
+        }
         pop();
         generalPurposeRegister %= temp;
-        push(std::to_string(generalPurposeRegister));
+        push(generalPurposeRegister);
     }
 
     // Relational operator functions
@@ -268,7 +320,7 @@ public:
         const int temp = generalPurposeRegister;
         pop();
         generalPurposeRegister = temp == generalPurposeRegister;
-        push(std::to_string(generalPurposeRegister));
+        push(generalPurposeRegister);
     }
 
     void neq() {
@@ -277,7 +329,7 @@ public:
         const int temp = generalPurposeRegister;
         pop();
         generalPurposeRegister = temp != generalPurposeRegister;
-        push(std::to_string(generalPurposeRegister));
+        push(generalPurposeRegister);
     }
 
     void lt() {
@@ -286,7 +338,7 @@ public:
         const int temp = generalPurposeRegister;
         pop();
         generalPurposeRegister = generalPurposeRegister < temp;
-        push(std::to_string(generalPurposeRegister));
+        push(generalPurposeRegister);
     }
 
     void lte() {
@@ -295,7 +347,7 @@ public:
         const int temp = generalPurposeRegister;
         pop();
         generalPurposeRegister = generalPurposeRegister <= temp;
-        push(std::to_string(generalPurposeRegister));
+        push(generalPurposeRegister);
     }
 
     void gt() {
@@ -304,7 +356,7 @@ public:
         const int temp = generalPurposeRegister;
         pop();
         generalPurposeRegister = generalPurposeRegister > temp;
-        push(std::to_string(generalPurposeRegister));
+        push(generalPurposeRegister);
     }
 
     void gte() {
@@ -313,7 +365,7 @@ public:
         const int temp = generalPurposeRegister;
         pop();
         generalPurposeRegister = generalPurposeRegister >= temp;
-        push(std::to_string(generalPurposeRegister));
+        push(generalPurposeRegister);
     }
 
     // Special functions
@@ -352,13 +404,13 @@ public:
 
     void end(const std::string &arg) {
         if(arg.empty()) {
-            push(std::to_string(generalPurposeRegister));
+            push(generalPurposeRegister);
             exit(generalPurposeRegister);
         } else if(arg == "bp") {
-            push(std::to_string(basePointer));
+            push(basePointer);
             exit(basePointer);
         } else if(arg == "top") {
-            push(std::to_string(stackTop));
+            push(stackTop);
             exit(stackTop);
         } else {
             push(arg);
