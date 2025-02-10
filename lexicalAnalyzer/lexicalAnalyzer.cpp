@@ -14,22 +14,28 @@
 #include <utility>
 
 enum class TokenType {
-    COMMA, GREATER, LESS, DOT, MINUS, LEFT_PAREN,
-    RIGHT_PAREN, SEMICOLON, COLON, MOD, LEFT_BRACE, RIGHT_BRACE,
-    POUND, TERNARY, SINGLE_QUOTE, LEFT_BRACKET,
-    RIGHT_BRACKET, DOUBLE_QUOTE, NOT, STAR, BACK_SLASH,
-    SLASH, PLUS, ASSIGN, AMPERSAND, LINE_COMMENT, COMMENT_START,
-    COMMENT_END,
+    // Single-character tokens
+    LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE, LEFT_BRACKET, RIGHT_BRACKET,
+    COMMA, DOT, SEMICOLON, COLON, HASH, SINGLE_QUOTE, DOUBLE_QUOTE,
+    BACKSLASH, FORWARD_SLASH, ASTERISK, PLUS, MINUS, PERCENT, NOT, AMPERSAND,
 
-    OR, AND, GREATER_EQUALS, LESS_EQUALS, EQUALS, NOT_EQUALS,
-    INCREMENT, DECREMENT, PLUS_EQUALS, MINUS_EQUALS, MULT_EQUALS,
-    DIV_EQUALS,
+    // Multi-character operators
+    ASSIGN, EQUALS, NOT_EQUALS, GREATER, GREATER_EQUALS, LESS, LESS_EQUALS,
+    INCREMENT, DECREMENT, PLUS_EQUALS, MINUS_EQUALS, MULT_EQUALS, DIV_EQUALS,
+    OR, AND, TERNARY,
 
+    // Comments
+    LINE_COMMENT, BLOCK_COMMENT_START, BLOCK_COMMENT_END,
+
+    // Whitespace
     SPACE, NEWLINE, TAB, CARRIAGE_RETURN, FORM_FEED,
 
-    INT, STRUCT, BREAK, ELSE, SWITCH, CASE, ENUM,
-    RETURN, CONTINUE, FOR, VOID,
-    IF, WHILE, DEFAULT, END_OF_FILE
+    // Keywords
+    INT, VOID, STRUCT, ENUM, IF, ELSE, WHILE, FOR, SWITCH, CASE, DEFAULT,
+    BREAK, CONTINUE, RETURN, END_OF_FILE,
+
+    // Literals and Identifiers
+    LITERAL, IDENTIFIER
 };
 
 class Token {
@@ -85,9 +91,9 @@ private:
             {">", TokenType::GREATER},
             {"+", TokenType::PLUS},
             {"-", TokenType::MINUS},
-            {"*", TokenType::STAR},
-            {"/", TokenType::SLASH},
-            {"%", TokenType::MOD},
+            {"*", TokenType::ASTERISK},
+            {"/", TokenType::FORWARD_SLASH},
+            {"%", TokenType::PERCENT},
             {"&", TokenType::AMPERSAND},
             {",", TokenType::COMMA},
             {".", TokenType::DOT},
@@ -97,19 +103,19 @@ private:
             {"\t", TokenType::TAB},
             {"\r", TokenType::CARRIAGE_RETURN},
             {"\f", TokenType::FORM_FEED},
-            {"\\", TokenType::BACK_SLASH},
+            {"\\", TokenType::BACKSLASH},
             {"\"", TokenType::DOUBLE_QUOTE},
             {"'", TokenType::SINGLE_QUOTE},
             {" ", TokenType::SPACE},
-            {"#", TokenType::POUND},
+            {"#", TokenType::HASH},
             {"?", TokenType::TERNARY},
             {"!", TokenType::NOT},
             {"=", TokenType::ASSIGN},
             {"==", TokenType::EQUALS},
             {"!=", TokenType::NOT_EQUALS},
             {"//", TokenType::LINE_COMMENT},
-            {"/*", TokenType::COMMENT_START},
-            {"*/", TokenType::COMMENT_END},
+            {"/*", TokenType::BLOCK_COMMENT_START},
+            {"*/", TokenType::BLOCK_COMMENT_END},
 
             // Other Symbols
             {"||", TokenType::OR},
