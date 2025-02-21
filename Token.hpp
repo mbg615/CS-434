@@ -47,7 +47,7 @@ public:
     Token(TokenType type, std::string lexeme, int line, int column) : type_(type), lexeme_(std::move(lexeme)), line_(line), column_(column) {}
     Token(TokenType type, char lexeme, int line, int column) : type_(type), lexeme_(1, lexeme), line_(line), column_(column) {}
 
-    [[nodiscard]] Token getToken() const { return type_; }
+    [[nodiscard]] TokenType getToken() const { return type_; }
     [[nodiscard]] const std::string& getLexeme() const { return lexeme_; }
     [[nodiscard]] int getLine() const { return line_; }
     [[nodiscard]] int getColumn() const { return column_; }
