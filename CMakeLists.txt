@@ -11,6 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Define the build target (stackMachine or other)
 option(BUILD_STACK_MACHINE "Build stackMachine project" ON)
 option(BUILD_LEXICAL_ANALYZER "Build lexicalAnalyzer project" ON)
+option(BUILD_PARSER "Build parser project" ON)
 
 # Set the output directory for binaries
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -44,5 +45,21 @@ if (BUILD_LEXICAL_ANALYZER)
     # Handle Debug mode
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         target_compile_definitions(lexicalAnalyzer PRIVATE DEBUG)
+    endif()
+endif()
+
+if (BUILD_PARSER)
+    # Collect all source files in the parser directory
+    file(GLOB PARSER_SOURCES parser/*.cpp)
+
+    # Define the parser executable
+    add_executable(parser ${PARSER_SOURCES})
+
+    # Enable warnings for better code safety
+    target_compile_options(parser PRIVATE -Wall -Wextra -Wpedantic)
+
+    # Handle Debug mode
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        target_compile_definitions(parser PRIVATE DEBUG)
     endif()
 endif()
