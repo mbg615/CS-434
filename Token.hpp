@@ -1,3 +1,6 @@
+#ifndef TOKENTYPE_HPP
+#define TOKENTYPE_HPP
+
 #include <string>
 #include <iomanip>
 
@@ -62,3 +65,5 @@ public:
         return os;
     }
 };
+
+#endif TOKENTYPE_HPP
