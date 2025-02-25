@@ -25,6 +25,20 @@ enum class TokenType {
     STRING_LITERAL, CHAR_LITERAL, INT_LITERAL, IDENTIFIER, ERROR
 };
 
+std::string toString(TokenType type) {
+    std::string string[] = {
+            "LEFT_PAREN", "RIGHT_PAREN", "LEFT_BRACE", "RIGHT_BRACE", "LEFT_BRACKET", "RIGHT_BRACKET",
+            "COMMA", "DOT", "SEMICOLON", "COLON", "FORWARD_SLASH", "ASTERISK", "PLUS", "MINUS", "PERCENT", "NOT",
+            "ASSIGN", "EQUALS", "NOT_EQUALS", "GREATER", "GREATER_EQUALS", "LESS", "LESS_EQUALS",
+            "INCREMENT", "DECREMENT", "PLUS_EQUALS", "MINUS_EQUALS", "MULT_EQUALS", "DIV_EQUALS", "MOD_EQUALS",
+            "OR", "AND", "TERNARY",
+            "LINE_COMMENT", "BLOCK_COMMENT", "END_OF_FILE",
+            "INT", "VOID", "STRUCT", "ENUM", "IF", "ELSE", "WHILE", "FOR", "SWITCH", "CASE", "DEFAULT",
+            "BREAK", "CONTINUE", "RETURN",
+            "STRING_LITERAL", "CHAR_LITERAL", "INT_LITERAL", "IDENTIFIER", "ERROR"};
+    return string[static_cast<int>(type)];
+}
+
 class Token {
 private:
     TokenType type_;
@@ -32,21 +46,9 @@ private:
     int line_;
     int column_;
 
-    [[nodiscard]] std::string toString() const {
-        std::string string[] = {
-                "LEFT_PAREN", "RIGHT_PAREN", "LEFT_BRACE", "RIGHT_BRACE", "LEFT_BRACKET", "RIGHT_BRACKET",
-                "COMMA", "DOT", "SEMICOLON", "COLON", "FORWARD_SLASH", "ASTERISK", "PLUS", "MINUS", "PERCENT", "NOT",
-                "ASSIGN", "EQUALS", "NOT_EQUALS", "GREATER", "GREATER_EQUALS", "LESS", "LESS_EQUALS",
-                "INCREMENT", "DECREMENT", "PLUS_EQUALS", "MINUS_EQUALS", "MULT_EQUALS", "DIV_EQUALS", "MOD_EQUALS",
-                "OR", "AND", "TERNARY",
-                "LINE_COMMENT", "BLOCK_COMMENT", "END_OF_FILE",
-                "INT", "VOID", "STRUCT", "ENUM", "IF", "ELSE", "WHILE", "FOR", "SWITCH", "CASE", "DEFAULT",
-                "BREAK", "CONTINUE", "RETURN",
-                "STRING_LITERAL", "CHAR_LITERAL", "INT_LITERAL", "IDENTIFIER", "ERROR"};
-        return string[static_cast<int>(type_)];
-    }
-
 public:
+    [[nodiscard]] std::string toString() const { return ::toString(type_); }
+
     Token(TokenType type, std::string lexeme, int line, int column) : type_(type), lexeme_(std::move(lexeme)), line_(line), column_(column) {}
     Token(TokenType type, char lexeme, int line, int column) : type_(type), lexeme_(1, lexeme), line_(line), column_(column) {}
 

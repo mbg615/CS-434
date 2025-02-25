@@ -26,13 +26,13 @@ public:
 
 using ASTPtr = std::unique_ptr<ASTNode>;
 
-class Number : ASTNode {
+class Number : public ASTNode {
 public:
     int value;
     explicit Number(int val) : value(val) {}
 };
 
-class BinaryOp : ASTNode {
+class BinaryOp : public ASTNode {
 public:
     ASTPtr left;
     char op;
@@ -49,63 +49,56 @@ private:
     Token currentToken = {TokenType::END_OF_FILE, "Initial Value", -1, -1};
     std::vector<Token> tokenStream;
 
-    Token consume(TokenType expectedType) {
-        // todo if (currentToken.getToken() != expectedType) throw std::runtime_error("Expected token of type " + expectedType. + " but got " + currentToken.toString());
+    void consume() {
+        if(tokenIndex < tokenStream.size()) currentToken = tokenStream[tokenIndex++];
+        else currentToken = {TokenType::END_OF_FILE, "", -1, -1};
     }
 
-    ASTPtr parseExpr() {
-
-        switch(currentToken.getToken()) {
-            case TokenType::PLUS:
-                ASTPtr
-                break;
-            case TokenType::MINUS:
-                break;
-            case TokenType::INT_LITERAL:
-                break;
-            default:
-                throw std::runtime_error("Invalid Token");
+    bool accept(TokenType type) {
+        if(currentToken.getToken() == type) {
+            consume();
+            return true;
         }
-
-    }
-
-    ASTPtr parseTerm() {
-
-        switch(currentToken.getToken()) {
-            case TokenType::ASTERISK:
-                break;
-            case TokenType::FORWARD_SLASH:
-                break;
-            case TokenType::INT_LITERAL:
-                break;
-            default:
-                throw std::runtime_error("Invalid Token");
-        }
-
+        return false;
     }
 
     ASTPtr parseFactor() {
-
-        switch(currentToken.getToken()) {
-            case TokenType::LEFT_PAREN:
-                break;
-            case TokenType::INT_LITERAL:
-                int value =
-
-
-
-
-                break;
-            default:
-                throw std::runtime_error("Invalid Token");
+        if(accept(TokenType::INT_LITERAL)) {
+            return std::make_unique<Number>(std::stoi(currentToken.getLexeme()));
         }
+        if(accept(TokenType::LEFT_PAREN)) {
+            ASTPtr expr = parseExpr();
+            if(!accept(TokenType::RIGHT_PAREN)) throw std::runtime_error("Expected closing parenthesis");
+            return expr;
+        }
+        throw std::runtime_error("Unexpected token " + currentToken.toString() + " in factor");
+    }
 
+    ASTPtr parseTerm() {
+        ASTPtr factor = parseFactor();
+        Token prevToken = currentToken;
+        while(accept(TokenType::ASTERISK) || accept(TokenType::FORWARD_SLASH)) {
+            char op = prevToken.getLexeme()[0];
+            ASTPtr right = parseFactor();
+            factor = std::make_unique<BinaryOp>(std::move(factor), op, std::move(right));
+        }
+        return factor;
+    }
+
+    ASTPtr parseExpr() {
+        ASTPtr term = parseTerm();
+        Token prevToken = currentToken;
+        while(accept(TokenType::PLUS) || accept(TokenType::MINUS)) {
+            char op = prevToken.getLexeme()[0];
+            ASTPtr right = parseTerm();
+            term = std::make_unique<BinaryOp>(std::move(term), op, std::move(right));
+        }
+        return term;
     }
 
 public:
-    
-};
+    ASTPtr parse() {
+        return parseExpr();
+    }
 
-int main() {
-    return 0;
-}
+};
