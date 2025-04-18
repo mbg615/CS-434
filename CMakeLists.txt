@@ -53,7 +53,9 @@ if (BUILD_PARSER)
     file(GLOB PARSER_SOURCES parser/*.cpp)
 
     # Define the parser executable
-    add_executable(parser ${PARSER_SOURCES})
+    add_executable(parser ${PARSER_SOURCES}
+            parser/Parser.cpp
+            parser/ast.cpp)
 
     # Enable warnings for better code safety
     target_compile_options(parser PRIVATE -Wall -Wextra -Wpedantic)

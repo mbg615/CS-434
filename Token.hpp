@@ -1,5 +1,5 @@
-#ifndef TOKENTYPE_HPP
-#define TOKENTYPE_HPP
+#ifndef TOKEN_HPP
+#define TOKEN_HPP
 
 #include <string>
 #include <iomanip>
@@ -25,7 +25,7 @@ enum class TokenType {
     STRING_LITERAL, CHAR_LITERAL, INT_LITERAL, IDENTIFIER, ERROR
 };
 
-std::string toString(TokenType type) {
+inline std::string toString(TokenType type) {
     std::string string[] = {
             "LEFT_PAREN", "RIGHT_PAREN", "LEFT_BRACE", "RIGHT_BRACE", "LEFT_BRACKET", "RIGHT_BRACKET",
             "COMMA", "DOT", "SEMICOLON", "COLON", "FORWARD_SLASH", "ASTERISK", "PLUS", "MINUS", "PERCENT", "NOT",
@@ -49,6 +49,13 @@ private:
 public:
     [[nodiscard]] std::string toString() const { return ::toString(type_); }
 
+    Token() {
+        type_ = TokenType::ERROR;
+        lexeme_ = "Initial Token";
+        line_ = -1;
+        column_ = -1;
+    }
+
     Token(TokenType type, std::string lexeme, int line, int column) : type_(type), lexeme_(std::move(lexeme)), line_(line), column_(column) {}
     Token(TokenType type, char lexeme, int line, int column) : type_(type), lexeme_(1, lexeme), line_(line), column_(column) {}
 
@@ -68,4 +75,4 @@ public:
     }
 };
 
-#endif TOKENTYPE_HPP
+#endif //TOKEN_HPP

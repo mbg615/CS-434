@@ -239,14 +239,3 @@ public:
 #pragma clang diagnostic pop
 
 };
-
-int main() {
-    Lexer myLexer("test.c");
-
-    Token token = myLexer.lex();
-    while(token.getToken() != TokenType::END_OF_FILE) {
-        std::cout << token << std::endl;
-        token = myLexer.lex();
-    }
-    return 0;
-}
