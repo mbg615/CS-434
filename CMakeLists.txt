@@ -12,6 +12,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(BUILD_STACK_MACHINE "Build stackMachine project" ON)
 option(BUILD_LEXICAL_ANALYZER "Build lexicalAnalyzer project" ON)
 option(BUILD_PARSER "Build parser project" ON)
+option(BUILD_COMPILER "Build compiler project" ON)
 
 # Set the output directory for binaries
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -33,10 +34,10 @@ if (BUILD_STACK_MACHINE)
 endif()
 
 if (BUILD_LEXICAL_ANALYZER)
-    # Collect all source files in the lexicalAnalyzer directory
-    file(GLOB LEXICAL_ANALYZER_SOURCES lexicalAnalyzer/*.cpp)
+    # Collect all source files in the Lexer directory
+    file(GLOB LEXICAL_ANALYZER_SOURCES Lexer/*.cpp)
 
-    # Define the lexicalAnalyzer executable
+    # Define the Lexer executable
     add_executable(lexicalAnalyzer ${LEXICAL_ANALYZER_SOURCES})
 
     # Enable warnings for better code safety
@@ -49,13 +50,13 @@ if (BUILD_LEXICAL_ANALYZER)
 endif()
 
 if (BUILD_PARSER)
-    # Collect all source files in the parser directory
-    file(GLOB PARSER_SOURCES parser/*.cpp)
+    # Collect all source files in the Parser directory
+    file(GLOB PARSER_SOURCES Parser/*.cpp)
 
-    # Define the parser executable
+    # Define the Parser executable
     add_executable(parser ${PARSER_SOURCES}
-            parser/Parser.cpp
-            parser/ast.cpp)
+            Parser/Parser.cpp
+            Parser/ast.cpp)
 
     # Enable warnings for better code safety
     target_compile_options(parser PRIVATE -Wall -Wextra -Wpedantic)
@@ -63,5 +64,29 @@ if (BUILD_PARSER)
     # Handle Debug mode
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         target_compile_definitions(parser PRIVATE DEBUG)
+    endif()
+endif()
+
+if (BUILD_COMPILER)
+    # Collect all source files in the compiler directory
+    file(GLOB COMPILER_SOURCES compiler/*.cpp)
+    file(GLOB LEXER_SOURCES Lexer/*.cpp)
+    file(GLOB PARSER_SOURCES Parser/*.cpp)
+    file(GLOB STACK_MACHINE_SOURCES stackMachine/*.cpp)
+
+    # Define the compiler executable
+    add_executable(compiler
+            ${COMPILER_SOURCES}
+            ${LEXER_SOURCES}
+            ${PARSER_SOURCES}
+            ${STACK_MACHINE_SOURCES}
+    )
+
+    # Enable warnings for better code safety
+    target_compile_options(compiler PRIVATE -Wall -Wextra -Wpedantic)
+
+    # Handle Debug mode
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        target_compile_definitions(compiler PRIVATE DEBUG)
     endif()
 endif()
