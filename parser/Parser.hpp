@@ -15,11 +15,17 @@ private:
 public:
     explicit Parser(Lexer &lexer);
 
-    ASTPtr parseExpression();
+    std::vector<ASTPtr> parseProgram();
+
+    ASTPtr parseStmt();
+    ASTPtr parseBlock();
+    ASTPtr parseIfStmt();
+    ASTPtr parseWhileStmt();
+
+    ASTPtr parseExpr();
     ASTPtr parseTerm();
     ASTPtr parseFactor();
 
 };
-
 
 #endif //PARSER_HPP

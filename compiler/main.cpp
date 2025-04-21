@@ -30,24 +30,49 @@
 #include "../stackMachine/StackMachine.hpp"
 
 int main() {
+    Lexer lexer("test.c");
+    Parser parser(lexer);
+
+//    auto program = parser.parseProgram();
+//    for (const auto& stmt : program) {
+//        std::cout << "Internal:\n";
+//        stmt->emit();
+//    }
+//
+//    std::streambuf* originalCoutBuffer = std::cout.rdbuf(); // Save the original buffer
+//    std::ostringstream oss; // Redirect cout to a stringstream
+//    std::cout.rdbuf(oss.rdbuf());
+//
+//    for (const auto& stmt : program) {
+//        std::cout << std::endl;
+//        stmt->emitStackCode();
+//        std::cout << "print \"The answer is: \"\n";
+//        std::cout << "print\n";
+//        std::cout << std::endl;
+//    }
+//
+//    std::cout << "push 0\n";
+//    std::cout << "end\n";
+//
+//    std::cout.rdbuf(originalCoutBuffer); // Restore the original cout
+//    std::ofstream outfile("test.vsm"); // Write the captured string to a file
+//    outfile << oss.str();
+//
+//    StackMachine stackMachine;
+//    stackMachine.loadProgramFromFile("test.vsm");
+//    std::cout << "Instructions:\n";
+//    stackMachine.printInstructionQueue();
+//    std::cout << std::endl;
+//    std::cout << "Labels:\n";
+//    stackMachine.printLabelMap();
+//    std::cout << std::endl;
+//
+//    stackMachine.runProgram();
+
+
+
     try {
-        Lexer lexerRead("math.c");
-
-        std::vector<Token> tokens;
-        Token token = lexerRead.lex();
-        while(token.getToken() != TokenType::END_OF_FILE) {
-            tokens.push_back(token);
-            std::cout << token << std::endl;
-            token = lexerRead.lex();
-        }
-        tokens.push_back(token);
-        std::cout << token << std::endl;
-
-        Lexer lexer("math.c");
-
-
-        Parser parser(lexer);
-        ASTPtr ast = parser.parseExpression();
+        ASTPtr ast = parser.parseStmt();
 
         std::cout << "\nPretty printed expression:\n";
         ast->emit();
@@ -78,6 +103,7 @@ int main() {
         return 1;
     }
 
+
     StackMachine stackMachine;
 
     stackMachine.loadProgramFromFile("test.vsm");
@@ -88,8 +114,6 @@ int main() {
     std::cout << std::endl;
 
     stackMachine.runProgram();
-
-
 
     return 0;
 }
