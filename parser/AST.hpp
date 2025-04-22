@@ -83,5 +83,38 @@ public:
     void emitStackCode() const override;
 };
 
+class VarDeclNode : public AST {
+private:
+    std::string name;
+    int offset;
+    ASTPtr initializer;
+
+public:
+    VarDeclNode(std::string varName, ASTPtr initializer, int offset);
+    void emit() const override;
+    void emitStackCode() const override;
+};
+
+class VarExprNode : public AST {
+private:
+    int offset;
+    std::string name;
+
+public:
+    VarExprNode(std::string varName, int offset);
+    void emit() const override;
+    void emitStackCode() const override;
+};
+
+class AssignNode : public AST {
+private:
+    int offset;
+    ASTPtr expr;
+
+public:
+    AssignNode(int offset, ASTPtr expr);
+    void emit() const override;
+    void emitStackCode() const override;
+};
 
 #endif //COMPILER_AST_HPP

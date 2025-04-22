@@ -6,7 +6,7 @@
 #define STACKMACHINE_HPP
 
 #define MAX_INSTRUCTION_COUNT 1024
-#define DEBUG 0
+#define DEBUG 1
 
 #include <unordered_map>
 #include <variant>

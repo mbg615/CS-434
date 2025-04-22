@@ -87,9 +87,7 @@ int main() {
         std::cout.rdbuf(oss.rdbuf());
 
         ast->emitStackCode();
-        std::cout << "print \"The answer is: \"\n";
         std::cout << "print\n";
-        std::cout << "push 0\n";
         std::cout << "end\n";
 
         std::cout.rdbuf(originalCoutBuffer); // Restore the original cout

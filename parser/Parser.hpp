@@ -12,6 +12,13 @@ private:
     void advance();
     void expect(TokenType expectedType);
 
+    std::unordered_map<std::string, int> variableOffsets;
+    int currentVarOffset = 0;
+
+    void declareVariable(const std::string& varName);
+    int variableOffset(const std::string& varName) const;
+
+
 public:
     explicit Parser(Lexer &lexer);
 
@@ -21,6 +28,9 @@ public:
     ASTPtr parseBlock();
     ASTPtr parseIfStmt();
     ASTPtr parseWhileStmt();
+    ASTPtr parseVarDecl();
+    ASTPtr parseAssignment();
+    ASTPtr parseComparison();
 
     ASTPtr parseExpr();
     ASTPtr parseTerm();

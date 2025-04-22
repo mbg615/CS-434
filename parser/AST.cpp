@@ -21,6 +21,12 @@ void BinExprNode::emitStackCode() const {
         case TokenType::MINUS: std::cout << "sub\n"; break;
         case TokenType::ASTERISK: std::cout << "mul\n"; break;
         case TokenType::FORWARD_SLASH: std::cout << "div\n"; break;
+        case TokenType::EQUALS: std::cout << "eq\n"; break;
+        case TokenType::NOT_EQUALS: std::cout << "neq\n"; break;
+        case TokenType::LESS: std::cout << "lt\n"; break;
+        case TokenType::GREATER: std::cout << "gt\n"; break;
+        case TokenType::GREATER_EQUALS: std::cout << "gte\n"; break;
+        case TokenType::LESS_EQUALS: std::cout << "lte\n"; break;
         default: throw std::runtime_error("Unknown Operator");
     }
 }
@@ -123,10 +129,49 @@ void WhileNode::emitStackCode() const {
     std::string startLabel = "while_start_" + std::to_string(whileId) + ":";
     std::string endLabel = "while_end_" + std::to_string(whileId) + ":";
 
+    std::cout << "jump " << startLabel << "\n";
     std::cout << startLabel << "\n";
     cond->emitStackCode();
     std::cout << "brz " << endLabel << "\n";
     body->emitStackCode();
     std::cout << "jump " << startLabel << "\n";
     std::cout << endLabel << "\n";
+}
+
+VarDeclNode::VarDeclNode(std::string varName, ASTPtr initializer, int offset) : name(std::move(varName)), initializer(std::move(initializer)), offset(offset) {}
+
+void VarDeclNode::emit() const {
+    std::cout << "Declare: " << name << " as: ";
+    initializer->emit();
+}
+
+void VarDeclNode::emitStackCode() const {
+    initializer->emitStackCode();
+    std::cout << "push " << offset << "\n";
+    std::cout << "store bp" << "\n";
+
+}
+
+VarExprNode::VarExprNode(std::string varName, int offset) : offset(offset), name(std::move(varName)) {}
+
+void VarExprNode::emit() const {
+    std::cout << "Var " << name << "\n";
+}
+
+void VarExprNode::emitStackCode() const {
+    std::cout << "push " << offset << "\n";
+    std::cout << "load bp\n";
+}
+
+AssignNode::AssignNode(int offset, ASTPtr expr) : offset(offset), expr(std::move(expr)) {}
+
+void AssignNode::emit() const {
+    std::cout << "Assign at offset: " << offset << "\n";
+    expr->emit();
+}
+
+void AssignNode::emitStackCode() const {
+    expr->emitStackCode();           // evaluate RHS and leave result on stack
+    std::cout << "push " << offset << "\n";  // push the variable offset
+    std::cout << "store bp\n";        // store the result into bp + offset
 }

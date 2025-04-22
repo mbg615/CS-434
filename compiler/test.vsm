@@ -1,48 +1,20 @@
-while_start_0:
-push 3
-push 2
-sub
-brz while_end_0:
-push 124
-push 24
-push 2
-mul
-add
-push 8
-push 9
-mul
-sub
-push 16
-push 5
-sub
-push 90
-mul
-add
-push 5
-push 13
-sub
-mul
-push 2
-push 2
-sub
-brz else_0:
-push 2
-push 2
-mul
 push 0
-div
+push 0
+store bp
+push 0
+load bp
+push 10
+lt
+brz else_0:
+push 1
+push 1
+add
 jump endif_0:
 else_0:
 push 1
-push 1
-mul
-push 5
+push 4
 add
 jump endif_0:
 endif_0:
-jump while_start_0:
-while_end_0:
-print "The answer is: "
 print
-push 0
 end

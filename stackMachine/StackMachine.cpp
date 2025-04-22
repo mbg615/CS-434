@@ -141,7 +141,7 @@ void StackMachine::store(const std::string &arg) {
 
     if (!validAddress(addr)) return;
     memoryStack[addr] = generalPurposeRegister = memoryStack[stackTop - 1];
-    pop();
+    //pop();
 }
 
 // Control flow functions

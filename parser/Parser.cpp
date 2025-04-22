@@ -17,6 +17,21 @@ void Parser::expect(TokenType expectedType) {
     }
 }
 
+void Parser::declareVariable(const std::string &varName) {
+    if (variableOffsets.find(varName) != variableOffsets.end()) {
+        throw std::runtime_error("Variable already declared: " + varName);
+    }
+    variableOffsets[varName] = currentVarOffset++;
+}
+
+int Parser::variableOffset(const std::string& varName) const {
+    auto it = variableOffsets.find(varName);
+    if (it == variableOffsets.end()) {
+        throw std::runtime_error("Undeclared variable: " + varName);
+    }
+    return it->second;
+}
+
 std::vector<ASTPtr> Parser::parseProgram() {
     std::vector<ASTPtr> stmts;
 
@@ -60,9 +75,14 @@ ASTPtr Parser::parseFactor() {
         advance();
         return std::make_unique<LiteralExprNode>(std::move(value));
     }
+    else if(currentToken.getToken() == TokenType::IDENTIFIER) {
+        std::string varName = currentToken.getLexeme();
+        advance();
+        return std::make_unique<VarExprNode>(varName, variableOffset(varName));
+    }
     else if (currentToken.getToken() == TokenType::LEFT_PAREN) {
         advance();
-        auto expr = parseExpr();
+        auto expr = parseComparison();
         expect(TokenType::RIGHT_PAREN);
         advance();
         return expr;
@@ -88,12 +108,14 @@ ASTPtr Parser::parseStmt() {
             return parseBlock();
 
         case TokenType::INT:
-            // TODO: parse variable declaration
-            throw std::runtime_error("parseVariableDeclaration() not implemented yet");
+            return parseVarDecl();
+
+        case TokenType::IDENTIFIER:
+            return parseAssignment();
 
         default:
             // Fallback: parse expression statement
-            auto expr = parseExpr();
+            auto expr = parseComparison();
             expect(TokenType::SEMICOLON);
             advance();
             return std::make_unique<ExprStmtNode>(std::move(expr));
@@ -106,7 +128,14 @@ ASTPtr Parser::parseBlock() {
 
     std::vector<ASTPtr> stmts;
 
+    while(currentToken.getToken() == TokenType::INT) {
+        stmts.push_back(parseVarDecl());
+    }
+
     while(currentToken.getToken() != TokenType::RIGHT_BRACE) {
+        if (currentToken.getToken() == TokenType::INT) {
+            throw std::runtime_error("Error: Variable declarations must appear before any statements.");
+        }
         stmts.push_back(parseStmt());
     }
 
@@ -123,7 +152,7 @@ ASTPtr Parser::parseIfStmt() {
     expect(TokenType::LEFT_PAREN);
     advance();
 
-    auto condition = parseExpr();
+    auto condition = parseComparison();
 
     expect(TokenType::RIGHT_PAREN);
     advance();
@@ -146,11 +175,69 @@ ASTPtr Parser::parseWhileStmt() {
     expect(TokenType::LEFT_PAREN);
     advance();
 
-    auto cond = parseExpr();
+    auto cond = parseComparison();
 
     expect(TokenType::RIGHT_PAREN);
     advance();
 
     auto body = parseStmt();
     return std::make_unique<WhileNode>(std::move(cond), std::move(body));
+}
+
+ASTPtr Parser::parseVarDecl() {
+    expect(TokenType::INT);
+    advance();
+
+    if (currentToken.getToken() != TokenType::IDENTIFIER) {
+        throw std::runtime_error("Expected variable name after type");
+    }
+    std::string varName = currentToken.getLexeme();
+    advance();
+
+    ASTPtr initializer = nullptr;
+    if (currentToken.getToken() == TokenType::ASSIGN) {
+        advance();
+        initializer = parseComparison();
+    }
+
+    expect(TokenType::SEMICOLON);
+    advance();
+
+    declareVariable(varName);
+    if (!initializer) initializer = std::make_unique<LiteralExprNode>(0);
+
+    return std::make_unique<VarDeclNode>(varName, std::move(initializer), variableOffset(varName));
+}
+
+ASTPtr Parser::parseAssignment() {
+    if (currentToken.getToken() != TokenType::IDENTIFIER) {
+        throw std::runtime_error("Expected variable name in assignment");
+    }
+
+    std::string varName = currentToken.getLexeme();
+    advance();
+
+    expect(TokenType::ASSIGN);
+    advance();
+
+    auto expr = parseComparison();
+
+    expect(TokenType::SEMICOLON);
+    advance();
+
+    return std::make_unique<AssignNode>(variableOffset(varName), std::move(expr));
+
+}
+
+ASTPtr Parser::parseComparison() {
+    auto node = parseExpr();
+
+    while(currentToken.getToken() == TokenType::EQUALS || currentToken.getToken() == TokenType::NOT_EQUALS || currentToken.getToken() == TokenType::LESS || currentToken.getToken() == TokenType::LESS_EQUALS || currentToken.getToken() == TokenType::GREATER || currentToken.getToken() == TokenType::GREATER_EQUALS) {
+        TokenType op = currentToken.getToken();
+        advance();
+        auto rhs = parseExpr();
+        node = std::make_unique<BinExprNode>(op, std::move(node), std::move(rhs));
+    }
+
+    return node;
 }
