@@ -1,6 +1,7 @@
 #ifndef COMPILER_AST_HPP
 #define COMPILER_AST_HPP
 
+#include <fstream>
 #include <memory>
 #include <variant>
 #include <vector>
@@ -12,6 +13,10 @@ public:
     virtual ~AST() = default;
     virtual void emit() const = 0;
     virtual void emitStackCode() const = 0;
+
+    static std::ostream *out;
+    static void setOutputStream(std::ostream* stream);
+
 };
 
 using ASTPtr = std::unique_ptr<AST>;
@@ -113,6 +118,16 @@ private:
 
 public:
     AssignNode(int offset, ASTPtr expr);
+    void emit() const override;
+    void emitStackCode() const override;
+};
+
+class ReturnNode : public AST {
+private:
+    ASTPtr expr;
+
+public:
+    ReturnNode(ASTPtr expr);
     void emit() const override;
     void emitStackCode() const override;
 };

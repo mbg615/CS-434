@@ -197,12 +197,19 @@ void StackMachine::call(const std::string &arg) {
 }
 
 void StackMachine::ret() {
+    if(basePointer == 0) {
+        exit(generalPurposeRegister);
+    }
     instructionCounter = memoryStack[basePointer];
     basePointer = memoryStack[basePointer - 1];
 }
 
 void StackMachine::retv() {
     pop();
+    if(basePointer == 0) {
+        push(std::to_string(generalPurposeRegister));
+        exit(generalPurposeRegister);
+    }
     instructionCounter = memoryStack[basePointer];
     basePointer = memoryStack[basePointer - 1];
     push(std::to_string(generalPurposeRegister));

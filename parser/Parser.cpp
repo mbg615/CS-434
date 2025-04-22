@@ -9,6 +9,9 @@ Parser::Parser(Lexer &lexer) : lexer(lexer) {
 
 void Parser::advance() {
     currentToken = lexer.lex();
+    if(currentToken.getToken() == TokenType::LINE_COMMENT || currentToken.getToken() == TokenType::BLOCK_COMMENT) {
+        advance();
+    }
 }
 
 void Parser::expect(TokenType expectedType) {
@@ -101,8 +104,7 @@ ASTPtr Parser::parseStmt() {
             return parseWhileStmt();
 
         case TokenType::RETURN:
-            // TODO: parse return-statement
-            throw std::runtime_error("parseReturnStatement() not implemented yet");
+            return parseReturn();
 
         case TokenType::LEFT_BRACE:
             return parseBlock();
@@ -240,4 +242,20 @@ ASTPtr Parser::parseComparison() {
     }
 
     return node;
+}
+
+ASTPtr Parser::parseReturn() {
+    expect(TokenType::RETURN);
+    advance();
+
+    ASTPtr expr = nullptr;
+
+    if(currentToken.getToken() != TokenType::SEMICOLON) {
+        expr = parseComparison();
+    }
+
+    expect(TokenType::SEMICOLON);
+    advance();
+
+    return std::make_unique<ReturnNode>(std::move(expr));
 }

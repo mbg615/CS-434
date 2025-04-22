@@ -2,6 +2,13 @@
 
 #include <iostream>
 
+std::ostream* AST::out = &std::cout;
+
+void AST::setOutputStream(std::ostream *stream) {
+    out = stream;
+
+}
+
 BinExprNode::BinExprNode(TokenType op, ASTPtr l, ASTPtr r) : oper(op), left(std::move(l)), right(std::move(r)) {}
 
 void BinExprNode::emit() const {
@@ -17,16 +24,16 @@ void BinExprNode::emitStackCode() const {
     right->emitStackCode();
 
     switch(oper) {
-        case TokenType::PLUS: std::cout << "add\n"; break;
-        case TokenType::MINUS: std::cout << "sub\n"; break;
-        case TokenType::ASTERISK: std::cout << "mul\n"; break;
-        case TokenType::FORWARD_SLASH: std::cout << "div\n"; break;
-        case TokenType::EQUALS: std::cout << "eq\n"; break;
-        case TokenType::NOT_EQUALS: std::cout << "neq\n"; break;
-        case TokenType::LESS: std::cout << "lt\n"; break;
-        case TokenType::GREATER: std::cout << "gt\n"; break;
-        case TokenType::GREATER_EQUALS: std::cout << "gte\n"; break;
-        case TokenType::LESS_EQUALS: std::cout << "lte\n"; break;
+        case TokenType::PLUS: *out << "add\n"; break;
+        case TokenType::MINUS: *out << "sub\n"; break;
+        case TokenType::ASTERISK: *out << "mul\n"; break;
+        case TokenType::FORWARD_SLASH: *out << "div\n"; break;
+        case TokenType::EQUALS: *out << "eq\n"; break;
+        case TokenType::NOT_EQUALS: *out << "neq\n"; break;
+        case TokenType::LESS: *out << "lt\n"; break;
+        case TokenType::GREATER: *out << "gt\n"; break;
+        case TokenType::GREATER_EQUALS: *out << "gte\n"; break;
+        case TokenType::LESS_EQUALS: *out << "lte\n"; break;
         default: throw std::runtime_error("Unknown Operator");
     }
 }
@@ -45,7 +52,7 @@ void LiteralExprNode::emit() const {
 
 void LiteralExprNode::emitStackCode() const {
     if (std::holds_alternative<int>(value)) {
-        std::cout << "push " << std::get<int>(value) << "\n";
+        *out << "push " << std::get<int>(value) << "\n";
     }
 }
 
@@ -99,17 +106,17 @@ void IfNode::emitStackCode() const {
     std::string endLabel = "endif_" + std::to_string(ifId) + ":";
 
     cond->emitStackCode();
-    std::cout << "brz " << elseLabel << "\n";
+    *out << "brz " << elseLabel << "\n";
     thenBranch->emitStackCode();
 
     if(elseBranch) {
-        std::cout << "jump " << endLabel << "\n";
-        std::cout << elseLabel << "\n";
+        *out << "jump " << endLabel << "\n";
+        *out << elseLabel << "\n";
         elseBranch->emitStackCode();
-        std::cout << "jump " << endLabel << "\n";
-        std::cout << endLabel << "\n";
+        *out << "jump " << endLabel << "\n";
+        *out << endLabel << "\n";
     } else {
-        std::cout << elseLabel << "\n";
+        *out << elseLabel << "\n";
     }
 }
 
@@ -129,13 +136,13 @@ void WhileNode::emitStackCode() const {
     std::string startLabel = "while_start_" + std::to_string(whileId) + ":";
     std::string endLabel = "while_end_" + std::to_string(whileId) + ":";
 
-    std::cout << "jump " << startLabel << "\n";
-    std::cout << startLabel << "\n";
+    *out << "jump " << startLabel << "\n";
+    *out << startLabel << "\n";
     cond->emitStackCode();
-    std::cout << "brz " << endLabel << "\n";
+    *out << "brz " << endLabel << "\n";
     body->emitStackCode();
-    std::cout << "jump " << startLabel << "\n";
-    std::cout << endLabel << "\n";
+    *out << "jump " << startLabel << "\n";
+    *out << endLabel << "\n";
 }
 
 VarDeclNode::VarDeclNode(std::string varName, ASTPtr initializer, int offset) : name(std::move(varName)), initializer(std::move(initializer)), offset(offset) {}
@@ -147,8 +154,8 @@ void VarDeclNode::emit() const {
 
 void VarDeclNode::emitStackCode() const {
     initializer->emitStackCode();
-    std::cout << "push " << offset << "\n";
-    std::cout << "store bp" << "\n";
+    *out << "push " << offset << "\n";
+    *out << "store bp" << "\n";
 
 }
 
@@ -159,8 +166,8 @@ void VarExprNode::emit() const {
 }
 
 void VarExprNode::emitStackCode() const {
-    std::cout << "push " << offset << "\n";
-    std::cout << "load bp\n";
+    *out << "push " << offset << "\n";
+    *out << "load bp\n";
 }
 
 AssignNode::AssignNode(int offset, ASTPtr expr) : offset(offset), expr(std::move(expr)) {}
@@ -172,6 +179,26 @@ void AssignNode::emit() const {
 
 void AssignNode::emitStackCode() const {
     expr->emitStackCode();           // evaluate RHS and leave result on stack
-    std::cout << "push " << offset << "\n";  // push the variable offset
-    std::cout << "store bp\n";        // store the result into bp + offset
+    *out << "push " << offset << "\n";  // push the variable offset
+    *out << "store bp\n";        // store the result into bp + offset
+}
+
+ReturnNode::ReturnNode(ASTPtr expr) : expr(std::move(expr)) {}
+
+void ReturnNode::emit() const {
+    std::cout << "Return: ";
+    if(expr) {
+        expr->emit();
+    } else {
+        std::cout << "NULL\n";
+    }
+}
+
+void ReturnNode::emitStackCode() const {
+    if(expr) {
+        expr->emit();
+        *out << "retv\n";
+    } else {
+        *out << "ret\n";
+    }
 }

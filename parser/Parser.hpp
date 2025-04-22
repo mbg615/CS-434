@@ -31,6 +31,7 @@ public:
     ASTPtr parseVarDecl();
     ASTPtr parseAssignment();
     ASTPtr parseComparison();
+    ASTPtr parseReturn();
 
     ASTPtr parseExpr();
     ASTPtr parseTerm();
