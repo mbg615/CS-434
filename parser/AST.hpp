@@ -132,4 +132,28 @@ public:
     void emitStackCode() const override;
 };
 
+class FunctionNode : public AST {
+private:
+    std::string returnType;
+    std::string name;
+    std::vector<std::string> params;
+    ASTPtr body;
+
+public:
+    FunctionNode(std::string returnType, std::string name, std::vector<std::string> parameters, ASTPtr body);
+    void emit() const override;
+    void emitStackCode() const override;
+};
+
+class FunctionCallNode : public AST {
+private:
+    std::string name;
+    std::vector<ASTPtr> args;
+
+public:
+    FunctionCallNode(std::string name, std::vector<ASTPtr> arguments);
+    void emit() const override;
+    void emitStackCode() const override;
+};
+
 #endif //COMPILER_AST_HPP

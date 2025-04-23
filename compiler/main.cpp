@@ -28,22 +28,27 @@
 #include "../Parser/Parser.hpp"
 #include "../stackMachine/StackMachine.hpp"
 
-int main() {
-    Lexer lexer("test.c");
+int main(int argc, char **argv) {
+    if(argc == 1) {
+        std::cout << "Compiler Error: no input files\n";
+        exit(1);
+    }
+
+    Lexer lexer(argv[1]);
     Parser parser(lexer);
 
-    std::ofstream outputFile("test.vsm");
+    std::ofstream outputFile("out.vsm");
     AST::setOutputStream(&outputFile);
 
     try {
-        ASTPtr ast = parser.parseStmt();
 
-//        std::cout << "\nPretty printed expression:\n";
-//        ast->emit();
-//        std::cout << "\n\n";
+        outputFile << "jump _main:\n";
 
+        auto program = parser.parseProgram();
 
-        ast->emitStackCode();
+        for (const auto& func : program) {
+            func->emitStackCode();
+        }
 
     } catch (const std::exception& e) {
         std::cerr << "Compiler Error: " << e.what() << std::endl;
@@ -53,7 +58,7 @@ int main() {
     outputFile.close();
 
     StackMachine stackMachine;
-    stackMachine.loadProgramFromFile("test.vsm");
+    stackMachine.loadProgramFromFile("out.vsm");
 
     stackMachine.printInstructionQueue();
     std::cout << std::endl;

@@ -1,6 +1,7 @@
 #include "AST.hpp"
 
 #include <iostream>
+#include <utility>
 
 std::ostream* AST::out = &std::cout;
 
@@ -28,6 +29,7 @@ void BinExprNode::emitStackCode() const {
         case TokenType::MINUS: *out << "sub\n"; break;
         case TokenType::ASTERISK: *out << "mul\n"; break;
         case TokenType::FORWARD_SLASH: *out << "div\n"; break;
+        case TokenType::PERCENT: *out << "mod\n"; break;
         case TokenType::EQUALS: *out << "eq\n"; break;
         case TokenType::NOT_EQUALS: *out << "neq\n"; break;
         case TokenType::LESS: *out << "lt\n"; break;
@@ -196,9 +198,34 @@ void ReturnNode::emit() const {
 
 void ReturnNode::emitStackCode() const {
     if(expr) {
-        expr->emit();
+        expr->emitStackCode();
         *out << "retv\n";
     } else {
         *out << "ret\n";
     }
+}
+
+FunctionNode::FunctionNode(std::string returnType, std::string name, std::vector<std::string> parameters, ASTPtr body) : returnType(std::move(returnType)), name(std::move(name)), params(std::move(parameters)), body(std::move(body)) {}
+
+void FunctionNode::emit() const {
+    std::cout << "Function: " << name << "\n";
+    body->emit();
+}
+
+void FunctionNode::emitStackCode() const {
+    *AST::out << "_" << name << ":\n";
+    body->emitStackCode();
+}
+
+FunctionCallNode::FunctionCallNode(std::string name, std::vector<ASTPtr> arguments) : name(name), args(std::move(arguments)) {}
+
+void FunctionCallNode::emit() const {
+    std::cout << "Function Call: " << name << " with " << args.size() << " args\n";
+}
+
+void FunctionCallNode::emitStackCode() const {
+    for (const auto& arg : args) {
+        arg->emitStackCode();
+    }
+    *AST::out << "call " << "_" << name << ":\n";
 }

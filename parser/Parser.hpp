@@ -8,15 +8,19 @@ class Parser {
 private:
     Lexer& lexer;
     Token currentToken;
+    Token bufferedToken;
+
+    bool hasBuffered = false;
 
     void advance();
+    Token peek();
     void expect(TokenType expectedType);
 
     std::unordered_map<std::string, int> variableOffsets;
     int currentVarOffset = 0;
 
     void declareVariable(const std::string& varName);
-    int variableOffset(const std::string& varName) const;
+    [[nodiscard]] int variableOffset(const std::string& varName) const;
 
 
 public:
@@ -32,6 +36,7 @@ public:
     ASTPtr parseAssignment();
     ASTPtr parseComparison();
     ASTPtr parseReturn();
+    ASTPtr parseFunction();
 
     ASTPtr parseExpr();
     ASTPtr parseTerm();

@@ -8,15 +8,29 @@ Parser::Parser(Lexer &lexer) : lexer(lexer) {
 }
 
 void Parser::advance() {
-    currentToken = lexer.lex();
-    if(currentToken.getToken() == TokenType::LINE_COMMENT || currentToken.getToken() == TokenType::BLOCK_COMMENT) {
-        advance();
+    if (hasBuffered) {
+        currentToken = bufferedToken;
+        hasBuffered = false;
+    } else {
+        currentToken = lexer.lex();
     }
+//    currentToken = lexer.lex();
+//    if(currentToken.getToken() == TokenType::LINE_COMMENT || currentToken.getToken() == TokenType::BLOCK_COMMENT) {
+//        advance();
+//    }
+}
+
+Token Parser::peek() {
+    if(!hasBuffered) {
+        bufferedToken = lexer.lex();
+        hasBuffered = true;
+    }
+    return bufferedToken;
 }
 
 void Parser::expect(TokenType expectedType) {
     if(currentToken.getToken() != expectedType) {
-        throw std::runtime_error("Unexpected Token");
+        throw std::runtime_error("Unexpected token: " + toString(currentToken.getToken()) + ", expected: " + toString(expectedType));
     }
 }
 
@@ -36,13 +50,13 @@ int Parser::variableOffset(const std::string& varName) const {
 }
 
 std::vector<ASTPtr> Parser::parseProgram() {
-    std::vector<ASTPtr> stmts;
+    std::vector<ASTPtr> functions;
 
     while (currentToken.getToken() != TokenType::END_OF_FILE) {
-        stmts.push_back(parseStmt());
+        functions.push_back(parseFunction());
     }
 
-    return stmts;
+    return functions;
 }
 
 ASTPtr Parser::parseExpr() {
@@ -58,7 +72,7 @@ ASTPtr Parser::parseExpr() {
 
 ASTPtr Parser::parseTerm() {
     auto node = parseFactor();
-    while (currentToken.getToken() == TokenType::ASTERISK || currentToken.getToken() == TokenType::FORWARD_SLASH) {
+    while (currentToken.getToken() == TokenType::ASTERISK || currentToken.getToken() == TokenType::FORWARD_SLASH || currentToken.getToken() == TokenType::PERCENT) {
         TokenType op = currentToken.getToken();
         advance();
         auto rhs = parseFactor();
@@ -81,6 +95,28 @@ ASTPtr Parser::parseFactor() {
     else if(currentToken.getToken() == TokenType::IDENTIFIER) {
         std::string varName = currentToken.getLexeme();
         advance();
+
+        if(currentToken.getToken() == TokenType::LEFT_PAREN) {
+            advance();
+
+            std::vector<ASTPtr> args;
+
+            if (currentToken.getToken() != TokenType::RIGHT_PAREN) {
+                args.push_back(parseComparison());
+
+                while (currentToken.getToken() == TokenType::COMMA) {
+                    advance();
+                    args.push_back(parseComparison());
+                }
+            }
+
+            expect(TokenType::RIGHT_PAREN);
+            advance();
+
+            return std::make_unique<FunctionCallNode>(varName, std::move(args));
+
+        }
+
         return std::make_unique<VarExprNode>(varName, variableOffset(varName));
     }
     else if (currentToken.getToken() == TokenType::LEFT_PAREN) {
@@ -112,8 +148,21 @@ ASTPtr Parser::parseStmt() {
         case TokenType::INT:
             return parseVarDecl();
 
-        case TokenType::IDENTIFIER:
-            return parseAssignment();
+        case TokenType::IDENTIFIER: {
+            Token ident = currentToken;
+
+            Token next = peek();
+            if (next.getToken() == TokenType::ASSIGN) {
+                return parseAssignment(); // already at IDENTIFIER, safe to proceed
+            }
+
+            // Not an assignment → must be a function call or expression
+            auto expr = parseComparison();
+            expect(TokenType::SEMICOLON);
+            advance();
+            return std::make_unique<ExprStmtNode>(std::move(expr));
+        }
+//            return parseAssignment();
 
         default:
             // Fallback: parse expression statement
@@ -258,4 +307,52 @@ ASTPtr Parser::parseReturn() {
     advance();
 
     return std::make_unique<ReturnNode>(std::move(expr));
+}
+
+ASTPtr Parser::parseFunction() {
+    std::string returnType;
+    if(currentToken.getToken() == TokenType::INT) returnType = "int";
+    else if(currentToken.getToken() == TokenType::VOID) returnType = "void";
+    else throw std::runtime_error("Expected return type (int or void) at start of function");
+    advance();
+
+    expect(TokenType::IDENTIFIER);
+    std::string name = currentToken.getLexeme();
+    advance();
+
+    expect(TokenType::LEFT_PAREN);
+    advance();
+
+    std::vector<std::string> params;
+    if(currentToken.getToken() != TokenType::RIGHT_PAREN) {
+        // ToDo: Edit this for float support.
+        expect(TokenType::INT);
+        advance();
+        expect(TokenType::IDENTIFIER);
+        params.push_back(currentToken.getLexeme());
+        advance();
+
+        while(currentToken.getToken() == TokenType::COMMA) {
+            advance();
+            expect(TokenType::INT);
+            advance();
+            expect(TokenType::IDENTIFIER);
+            params.push_back(currentToken.getLexeme());
+            advance();
+        }
+    }
+
+    expect(TokenType::RIGHT_PAREN);
+    advance();
+
+    variableOffsets.clear();
+    currentVarOffset = 0;
+
+    for(const auto& parm: params) {
+        variableOffsets[parm] = currentVarOffset++;
+    }
+
+    auto body = parseBlock();
+
+    return std::make_unique<FunctionNode>(returnType, name, params, std::move(body));
 }
