@@ -75,8 +75,6 @@ Token Lexer::lex() {
                 return {TokenType::TERNARY, c, line_, column_};
             case ',':
                 return {TokenType::COMMA, c, line_, column_};
-            case '.':
-                return {TokenType::DOT, c, line_, column_};
             case ';':
                 return {TokenType::SEMICOLON, c, line_, column_};
             case ':':
@@ -100,7 +98,6 @@ Token Lexer::lex() {
                 return match('|') ? Token{TokenType::OR, "||", line_, column_} : Token{TokenType::ERROR,'|', line_, column_};
 
             case '\'': {
-                // ToDo: Does this work?
                 std::string lexeme = "'";
                 advance();
                 while (pos_ < source_.size()) {
@@ -120,7 +117,6 @@ Token Lexer::lex() {
             }
 
             case '"': {
-                // ToDo: Does this work?
                 std::string lexeme = "\"";
                 lexeme += advance();
                 while (pos_ < source_.size()) {
@@ -138,7 +134,6 @@ Token Lexer::lex() {
                 }
                 return {TokenType::STRING_LITERAL, lexeme, line_, column_};
             }
-
 
             case '/': {
                 if (match('/')) {
@@ -170,22 +165,31 @@ Token Lexer::lex() {
             case '0' ... '9': {
                 std::string lexeme(1,c);
                 while (pos_ < source_.size() && isdigit(peek())) lexeme += advance();
+                if(match('.')) {
+                    lexeme += '.';
+                    while (pos_ < source_.size() && isdigit(peek())) lexeme += advance();
+                    return {TokenType::FLOAT_LITERAL, lexeme, line_, column_};
+                }
                 return {TokenType::INT_LITERAL, lexeme, line_, column_};
+            }
+
+            case '.': {
+                if(isdigit(peek())) {
+                    std::string lexeme(1,c);
+                    while (pos_ < source_.size() && isdigit(peek())) lexeme += advance();
+                    return {TokenType::FLOAT_LITERAL, lexeme, line_, column_};
+                }
+                return {TokenType::DOT, c, line_, column_};
             }
 
             case 'a' ... 'z':
             case 'A' ... 'Z':
             case '_': {
                 std::string lexeme(1, c);
-                while(pos_ < source_.size() && (std::isalnum(source_[pos_]) || source_[pos_] == '_')) {
-                    lexeme += advance();
-                }
-
+                while(pos_ < source_.size() && (std::isalnum(source_[pos_]) || source_[pos_] == '_')) lexeme += advance();
                 TokenType type = keywords.contains(lexeme) ? keywords.at(lexeme) : TokenType::IDENTIFIER;
                 return {type, lexeme, line_, column_};
             }
-
-
 
             case '+':
                 if(match('+')) {

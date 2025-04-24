@@ -26,6 +26,7 @@ private:
 
     std::unordered_map<std::string, TokenType> keywords {
             {"int", TokenType::INT},
+            {"float", TokenType::FLOAT},
             {"void", TokenType::VOID},
             {"struct", TokenType::STRUCT},
             {"enum", TokenType::ENUM},
