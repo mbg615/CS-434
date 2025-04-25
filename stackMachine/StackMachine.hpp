@@ -2,18 +2,19 @@
 #define STACKMACHINE_HPP
 
 #define MAX_INSTRUCTION_COUNT 1024
-#define DEBUG 0
+#define DEBUG 1
 
 #include <unordered_map>
 #include <variant>
 #include <functional>
 #include <string>
 
+using Value = std::variant<int, float>;
 
 class StackMachine {
 private:
     std::unordered_map<std::string, std::variant<std::function<void(std::string)>, std::function<void()>>> instructionImplementationMap;
-    int generalPurposeRegister = 0; // General Purpose Register
+    Value generalPurposeRegister = 0; // General Purpose Register
 
     // Instruction model
     std::string instructionQueue[MAX_INSTRUCTION_COUNT][2];
@@ -21,7 +22,7 @@ private:
     int instructionCounter = 0; // (pc) Next instruction to execute
 
     // Stack model
-    int memoryStack[4096]{};
+    Value memoryStack[4096]{};
     int stackTop = 0; // (top) Next open slot in memory stack
     int basePointer = 0; // (bp) Base frame of current function
     std::vector<int> returnAddressStack;
@@ -65,10 +66,6 @@ public:
     bool loadProgramFromFile(const std::string &filename);
     void printInstructionQueue() const;
     void printLabelMap() const;
-
-
-
-
 };
 
 #endif //STACKMACHINE_HPP

@@ -68,23 +68,53 @@ void StackMachine::push(const std::string &arg) {
     } else if(arg == "top") {
         memoryStack[stackTop++] = generalPurposeRegister = memoryStack[stackTop - 1];
     } else {
-        memoryStack[stackTop++] = generalPurposeRegister = std::stoi(arg);
+        try {
+            if(arg.find('.') != std::string::npos) {
+                memoryStack[stackTop++] = generalPurposeRegister = std::stof(arg);
+            } else{
+                memoryStack[stackTop++] = generalPurposeRegister = std::stoi(arg);
+            }
+        } catch(const std::invalid_argument &e) {
+            std::cerr << "Invalid push argument: " << arg << std::endl;
+            return;
+        }
     }
-    if(DEBUG) std::cout << "Pushed " << generalPurposeRegister << " onto the stack" << std::endl;
+
+    if(DEBUG) {
+        std::visit([](auto v) {
+            std::cout << "Pushed " << v << " onto the stack" << std::endl;
+        }, generalPurposeRegister);
+    }
 }
 
 void StackMachine::pop(const std::string &arg) {
     if (!validAddress(stackTop)) return;
 
     if(arg == "top") {
-        stackTop = memoryStack[--stackTop];
+        stackTop = std::visit([](auto v) -> int {
+            if constexpr (std::is_same_v<decltype(v), float>) {
+                std::cerr << "Warning: float value " << v << " converted to int for stackTop\n";
+                return static_cast<int>(v); // convert float to int
+            }
+            return v;
+        }, memoryStack[--stackTop]);
         if(DEBUG) std::cout << "Popped " << stackTop << " from the stack" << std::endl;
     } else if(arg == "bp") {
-        basePointer = memoryStack[--stackTop];
+        basePointer = std::visit([](auto v) -> int {
+            if constexpr (std::is_same_v<decltype(v), float>) {
+                std::cerr << "Warning: float value " << v << " converted to int for basePointer\n";
+                return static_cast<int>(v); // convert float to int
+            }
+            return v;
+        }, memoryStack[--basePointer]);
         if(DEBUG) std::cout << "Popped " << basePointer << " from the stack" << std::endl;
     } else {
         generalPurposeRegister = memoryStack[--stackTop];
-        if(DEBUG) std::cout << "Popped " << generalPurposeRegister << " from the stack" << std::endl;
+        if(DEBUG) {
+            std::visit([](auto v) {
+                std::cout << "Popped " << v << " from the stack" << std::endl;
+            }, generalPurposeRegister);
+        }
     }
 
     memoryStack[stackTop] = 0;
@@ -93,7 +123,11 @@ void StackMachine::pop(const std::string &arg) {
 void StackMachine::pop() {
     if (!validAddress(stackTop)) return;
     generalPurposeRegister = memoryStack[--stackTop];
-    if(DEBUG) std::cout << "Popped " << generalPurposeRegister << " from the stack" << std::endl;
+    if(DEBUG) {
+        std::visit([](auto v) {
+            std::cout << "Popped " << v << " from the stack" << std::endl;
+        }, generalPurposeRegister);
+    }
     memoryStack[stackTop] = 0;
 }
 
@@ -101,12 +135,23 @@ void StackMachine::dup() {
     if (!validAddress(stackTop)) return;
     memoryStack[stackTop] = generalPurposeRegister = memoryStack[stackTop - 1];
     stackTop++;
-    std::cout << "Duplicated " << generalPurposeRegister << " onto the stack" << std::endl;
+    if(DEBUG) {
+        std::visit([](auto v) {
+            std::cout << "Duplicated " << v << " onto the stack" << std::endl;
+        }, generalPurposeRegister);
+    }
 }
 
 void StackMachine::load(const std::string &arg) {
     pop();
-    int addr = generalPurposeRegister;
+    int addr = std::visit([](auto v) -> int {
+        if constexpr (std::is_same_v<decltype(v), float>) {
+            std::cerr << "Warning: float " << v << " converted to int for memory access in load()\n";
+            return static_cast<int>(v);
+        }
+        return v;
+    }, generalPurposeRegister);
+
     if (arg == "bp") {
         addr += basePointer;
     } else if (arg == "top") {
@@ -114,12 +159,19 @@ void StackMachine::load(const std::string &arg) {
     }
 
     if (!validAddress(addr)) return;
-    push(std::to_string(memoryStack[addr]));
+    push(std::visit([](auto v) { return std::to_string(v); }, memoryStack[addr]));
 }
 
 void StackMachine::save(const std::string &arg) {
     pop();
-    int addr = generalPurposeRegister;
+    int addr = std::visit([](auto v) -> int {
+        if constexpr (std::is_same_v<decltype(v), float>) {
+            std::cerr << "Warning: float " << v << " converted to int for memory access in save()\n";
+            return static_cast<int>(v);
+        }
+        return v;
+    }, generalPurposeRegister);
+
     if (arg == "bp") {
         addr += basePointer;
     } else if (arg == "top") {
@@ -132,7 +184,14 @@ void StackMachine::save(const std::string &arg) {
 
 void StackMachine::store(const std::string &arg) {
     pop();
-    int addr = generalPurposeRegister;
+    int addr = std::visit([](auto v) -> int {
+        if constexpr (std::is_same_v<decltype(v), float>) {
+            std::cerr << "Warning: float " << v << " converted to int for memory access in store()\n";
+            return static_cast<int>(v);
+        }
+        return v;
+    }, generalPurposeRegister);
+
     if (arg == "bp") {
         addr += basePointer;
     } else if (arg == "top") {
@@ -141,78 +200,105 @@ void StackMachine::store(const std::string &arg) {
 
     if (!validAddress(addr)) return;
     memoryStack[addr] = generalPurposeRegister = memoryStack[stackTop - 1];
-    //pop();
 }
 
 // Control flow functions
 void StackMachine::call(const std::string &arg) {
     if (arg.empty()) {
-        std::cerr << "Error: call requires an argument" << std::endl;
+        std::cerr << "Error: call requires a function label as argument" << std::endl;
         return;
     }
 
-    // Print current stack before modifying it
-    std::cerr << "CALL: Stack before function call:\n";
-
-    int argNum = generalPurposeRegister;
-    std::cerr << "CALL: Number of arguments = " << argNum << std::endl;
-
-    if (argNum < 0 || argNum > 4096) {
-        std::cerr << "Error: Invalid number of arguments: " << argNum << std::endl;
+    if (stackTop <= 0) {
+        std::cerr << "Error: Stack is empty. Cannot read argument count." << std::endl;
         return;
     }
 
-    // Store function arguments
-    std::vector<int> functionArgs(argNum);
-    for (int i = 0; i < argNum; i++) {
-        pop();
-        functionArgs[i] = generalPurposeRegister;
-        std::cerr << "CALL: Popped argument " << i << " = " << functionArgs[i] << std::endl;
+    pop();
+    int argNum = std::visit([](auto v) {
+        if constexpr (std::is_same_v<decltype(v), float>) {
+            std::cerr << "Warning: float " << v << " converted to int in call()\n";
+            return static_cast<int>(v);
+        }
+        return static_cast<int>(v);
+    }, generalPurposeRegister);
+
+    if(argNum < 0 || stackTop < argNum) {
+        std::cerr << "Error: Invalid argument count or stack underflow." << std::endl;
+        return;
     }
 
-    // Push the current base pointer (saved frame pointer)
-    std::cerr << "CALL: Pushing base pointer = " << basePointer << std::endl;
-    push(std::to_string(basePointer));
+    push(std::to_string(basePointer)); // Old base pointer
+    push(std::to_string(instructionCounter + 1)); // Return address
 
-    // Push the return address
-    std::cerr << "CALL: Pushing return address = " << instructionCounter + 1 << std::endl;
-    push(std::to_string(instructionCounter + 1));
+    basePointer = stackTop - argNum - 2;
 
-    // Update base pointer to the new stack frame
-    basePointer = stackTop - 1; // Point to saved BP
-    std::cerr << "CALL: Updated base pointer to " << basePointer << std::endl;
-
-    // Push function arguments back in order
-    for (int i = argNum - 1; i >= 0; i--) {
-        push(std::to_string(functionArgs[i]));
-        std::cerr << "CALL: Pushed argument " << i << " = " << functionArgs[i] << std::endl;
+    if(DEBUG) {
+        std::cerr << "CALL: argNum = " << argNum << std::endl;
+        std::cerr << "CALL: New base pointer = " << basePointer << std::endl;
     }
 
-    // Print stack after pushing everything
-    std::cerr << "CALL: Stack after setting up function call:\n";
-
-    // Jump to function
-    std::cerr << "CALL: Jumping to function " << arg << std::endl;
     jump(arg);
 }
 
 void StackMachine::ret() {
     if(basePointer == 0) {
-        exit(generalPurposeRegister);
+        std::visit([](auto v) {
+            if constexpr (std::is_same_v<decltype(v), float>) {
+                std::cerr << "Warning: float " << v << " converted to int in ret()\n";
+                exit(static_cast<int>(v));
+            }
+            exit(v);
+        }, generalPurposeRegister);
     }
-    instructionCounter = memoryStack[basePointer];
-    basePointer = memoryStack[basePointer - 1];
+
+    instructionCounter = std::visit([](auto v) -> int {
+        if constexpr (std::is_same_v<decltype(v), float>) {
+            std::cerr << "Warning: float " << v << " converted to int for instructionCounter in ret()\n";
+            return static_cast<int>(v);
+        }
+        return v;
+    }, memoryStack[basePointer]);
+
+    basePointer = std::visit([](auto v) -> int {
+        if constexpr (std::is_same_v<decltype(v), float>) {
+            std::cerr << "Warning: float " << v << " converted to int for basePointer in ret()\n";
+            return static_cast<int>(v);
+        }
+        return v;
+    }, memoryStack[basePointer - 1]);
 }
 
 void StackMachine::retv() {
     pop();
     if(basePointer == 0) {
-        push(std::to_string(generalPurposeRegister));
-        exit(generalPurposeRegister);
+        push(std::visit([](auto v) { return std::to_string(v); }, generalPurposeRegister));
+        std::visit([](auto v) {
+            if constexpr (std::is_same_v<decltype(v), float>) {
+                std::cerr << "Warning: float " << v << " converted to int in retv()\n";
+                exit(static_cast<int>(v));
+            }
+            exit(v);
+        }, generalPurposeRegister);
     }
-    instructionCounter = memoryStack[basePointer];
-    basePointer = memoryStack[basePointer - 1];
-    push(std::to_string(generalPurposeRegister));
+
+    instructionCounter = std::visit([](auto v) -> int {
+        if constexpr (std::is_same_v<decltype(v), float>) {
+            std::cerr << "Warning: float " << v << " converted to int for instructionCounter in retv()\n";
+            return static_cast<int>(v);
+        }
+        return v;
+    }, memoryStack[basePointer]);
+
+    basePointer = std::visit([](auto v) -> int {
+        if constexpr (std::is_same_v<decltype(v), float>) {
+            std::cerr << "Warning: float " << v << " converted to int for basePointer in retv()\n";
+            return static_cast<int>(v);
+        }
+        return v;
+    }, memoryStack[basePointer - 1]);
+
+    push(std::visit([](auto v) { return std::to_string(v); }, generalPurposeRegister));
 }
 
 void StackMachine::brt(const std::string &arg) {
@@ -222,7 +308,16 @@ void StackMachine::brt(const std::string &arg) {
     }
 
     pop();
-    if(generalPurposeRegister == 1) {
+
+    int val = std::visit([](auto v) -> int {
+        if constexpr (std::is_same_v<decltype(v), float>) {
+            std::cerr << "Warning: float " << v << " converted to int in brt()\n";
+            return static_cast<int>(v);
+        }
+        return v;
+    }, generalPurposeRegister);
+
+    if(val == 1) {
         jump(arg);
     }
 }
@@ -234,7 +329,15 @@ void StackMachine::brz(const std::string &arg) {
     }
 
     pop();
-    if(generalPurposeRegister == 0) {
+    int val = std::visit([](auto v) -> int {
+        if constexpr (std::is_same_v<decltype(v), float>) {
+            std::cerr << "Warning: float " << v << " converted to int in brt()\n";
+            return static_cast<int>(v);
+        }
+        return v;
+    }, generalPurposeRegister);
+
+    if(val == 0) {
         jump(arg);
     }
 }
@@ -257,101 +360,144 @@ void StackMachine::jump(const std::string &arg) {
 void StackMachine::add() {
     if (!validAddress(stackTop)) return;
     pop();
-    const int temp = generalPurposeRegister;
+    const Value temp = generalPurposeRegister;
     pop();
-    generalPurposeRegister += temp;
-    push(std::to_string(generalPurposeRegister));
+
+    generalPurposeRegister = std::visit([](auto a, auto b) -> Value {
+        return a + b;
+    }, generalPurposeRegister, temp);
+
+    push(std::visit([](auto v) { return std::to_string(v); }, generalPurposeRegister));
 }
 
 void StackMachine::sub() {
     if (!validAddress(stackTop)) return;
     pop();
-    const int temp = generalPurposeRegister;
+    const Value temp = generalPurposeRegister;
     pop();
-    generalPurposeRegister -= temp;
-    push(std::to_string(generalPurposeRegister));
+
+    generalPurposeRegister = std::visit([](auto a, auto b) -> Value {
+        return a - b;
+    }, generalPurposeRegister, temp);
+
+    push(std::visit([](auto v) { return std::to_string(v); }, generalPurposeRegister));
 }
 
 void StackMachine::mul() {
     if (!validAddress(stackTop)) return;
     pop();
-    const int temp = generalPurposeRegister;
+    const Value temp = generalPurposeRegister;
     pop();
-    generalPurposeRegister *= temp;
-    push(std::to_string(generalPurposeRegister));
+
+    generalPurposeRegister = std::visit([](auto a, auto b) -> Value {
+        return a * b;
+    }, generalPurposeRegister, temp);
+
+    push(std::visit([](auto v) { return std::to_string(v); }, generalPurposeRegister));
 }
 
 void StackMachine::div() {
     if (!validAddress(stackTop)) return;
     pop();
-    const int temp = generalPurposeRegister;
+    const Value temp = generalPurposeRegister;
     pop();
-    generalPurposeRegister /= temp;
-    push(std::to_string(generalPurposeRegister));
+
+    generalPurposeRegister = std::visit([](auto a, auto b) -> Value {
+        return a / b;
+    }, generalPurposeRegister, temp);
+
+    push(std::visit([](auto v) { return std::to_string(v); }, generalPurposeRegister));
 }
 
 void StackMachine::mod() {
     if (!validAddress(stackTop)) return;
     pop();
-    const int temp = generalPurposeRegister;
+    const Value temp = generalPurposeRegister;
     pop();
-    generalPurposeRegister %= temp;
-    push(std::to_string(generalPurposeRegister));
+
+    generalPurposeRegister = std::visit([](auto a, auto b) -> Value {
+        if constexpr (std::is_same_v<decltype(a), int> && std::is_same_v<decltype(b), int>) {
+            return a % b;
+        } else {
+            std::cerr << "Error: cannot perform modulus on a float" << std::endl;
+            return 0;
+        }
+    }, generalPurposeRegister, temp);
+
+    push(std::visit([](auto v) { return std::to_string(v); }, generalPurposeRegister));
 }
 
 // Relational operator functions
 void StackMachine::eq() {
     if (!validAddress(stackTop)) return;
     pop();
-    const int temp = generalPurposeRegister;
+    const Value temp = generalPurposeRegister;
     pop();
-    generalPurposeRegister = temp == generalPurposeRegister;
-    push(std::to_string(generalPurposeRegister));
+    generalPurposeRegister = std::visit([](auto a, auto b) -> Value {
+        return static_cast<int>(a == b);
+    }, generalPurposeRegister, temp);
+
+    push(std::visit([](auto v) { return std::to_string(v); }, generalPurposeRegister));
 }
 
 void StackMachine::neq() {
     if (!validAddress(stackTop)) return;
     pop();
-    const int temp = generalPurposeRegister;
+    const Value temp = generalPurposeRegister;
     pop();
-    generalPurposeRegister = temp != generalPurposeRegister;
-    push(std::to_string(generalPurposeRegister));
+    generalPurposeRegister = std::visit([](auto a, auto b) -> Value {
+        return static_cast<int>(a != b);
+    }, generalPurposeRegister, temp);
+
+    push(std::visit([](auto v) { return std::to_string(v); }, generalPurposeRegister));
 }
 
 void StackMachine::lt() {
     if (!validAddress(stackTop)) return;
     pop();
-    const int temp = generalPurposeRegister;
+    const Value temp = generalPurposeRegister;
     pop();
-    generalPurposeRegister = generalPurposeRegister < temp;
-    push(std::to_string(generalPurposeRegister));
+    generalPurposeRegister = std::visit([](auto a, auto b) -> Value {
+        return static_cast<int>(a < b);
+    }, generalPurposeRegister, temp);
+
+    push(std::visit([](auto v) { return std::to_string(v); }, generalPurposeRegister));
 }
 
 void StackMachine::lte() {
     if (!validAddress(stackTop)) return;
     pop();
-    const int temp = generalPurposeRegister;
+    const Value temp = generalPurposeRegister;
     pop();
-    generalPurposeRegister = generalPurposeRegister <= temp;
-    push(std::to_string(generalPurposeRegister));
+    generalPurposeRegister = std::visit([](auto a, auto b) -> Value {
+        return static_cast<int>(a <= b);
+    }, generalPurposeRegister, temp);
+
+    push(std::visit([](auto v) { return std::to_string(v); }, generalPurposeRegister));
 }
 
 void StackMachine::gt() {
     if (!validAddress(stackTop)) return;
     pop();
-    const int temp = generalPurposeRegister;
+    const Value temp = generalPurposeRegister;
     pop();
-    generalPurposeRegister = generalPurposeRegister > temp;
-    push(std::to_string(generalPurposeRegister));
+    generalPurposeRegister = std::visit([](auto a, auto b) -> Value {
+        return static_cast<int>(a > b);
+    }, generalPurposeRegister, temp);
+
+    push(std::visit([](auto v) { return std::to_string(v); }, generalPurposeRegister));
 }
 
 void StackMachine::gte() {
     if (!validAddress(stackTop)) return;
     pop();
-    const int temp = generalPurposeRegister;
+    const Value temp = generalPurposeRegister;
     pop();
-    generalPurposeRegister = generalPurposeRegister >= temp;
-    push(std::to_string(generalPurposeRegister));
+    generalPurposeRegister = std::visit([](auto a, auto b) -> Value {
+        return static_cast<int>(a >= b);
+    }, generalPurposeRegister, temp);
+
+    push(std::visit([](auto v) { return std::to_string(v); }, generalPurposeRegister));
 }
 
 // Special functions
@@ -361,7 +507,11 @@ void StackMachine::print(const std::string &arg) {
             std::cerr << "Error: Stack is empty. Nothing to print." << std::endl;
             return;
         }
-        std::cout << memoryStack[stackTop - 1] << std::endl;
+
+        std::visit([](auto v) {
+            std::cout << v << std::endl;
+        }, memoryStack[stackTop - 1]);
+
     } else {
         std::string formattedArg;
         for (size_t i = 0; i < arg.length(); ++i) {
@@ -384,14 +534,30 @@ void StackMachine::print(const std::string &arg) {
 }
 
 void StackMachine::read() {
-    std::cin >> memoryStack[stackTop];
-    generalPurposeRegister = memoryStack[stackTop++];
+    std::string input;
+    std::cin >> input;
+
+    try {
+        if(input.find('.') != std::string::npos) {
+            memoryStack[stackTop++] = generalPurposeRegister = std::stof(input);
+        } else {
+            memoryStack[stackTop++] = generalPurposeRegister = std::stoi(input);
+        }
+    } catch(...) {
+        std::cerr << "Error: Invalid input for read()\n";
+    }
 }
 
 void StackMachine::end(const std::string &arg) {
     if(arg.empty()) {
-        push(std::to_string(generalPurposeRegister));
-        exit(generalPurposeRegister);
+        push(std::visit([](auto v) { return std::to_string(v); }, generalPurposeRegister));
+        std::visit([](auto v) {
+            if constexpr (std::is_same_v<decltype(v), float>) {
+                std::cerr << "Warning: float " << v << " converted to int in end()\n";
+                exit(static_cast<int>(v));
+            }
+            exit(v);
+        }, generalPurposeRegister);
     } else if(arg == "bp") {
         push(std::to_string(basePointer));
         exit(basePointer);
@@ -400,7 +566,13 @@ void StackMachine::end(const std::string &arg) {
         exit(stackTop);
     } else {
         push(arg);
-        exit(memoryStack[stackTop - 1]);
+        std::visit([](auto v) {
+            if constexpr (std::is_same_v<decltype(v), float>) {
+                std::cerr << "Warning: float " << v << " converted to int in end()\n";
+                exit(static_cast<int>(v));
+            }
+            exit(v);
+        }, memoryStack[stackTop - 1]);
     }
 }
 
