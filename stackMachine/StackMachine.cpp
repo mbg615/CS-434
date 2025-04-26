@@ -231,7 +231,7 @@ void StackMachine::call(const std::string &arg) {
     push(std::to_string(basePointer)); // Old base pointer
     push(std::to_string(instructionCounter + 1)); // Return address
 
-    basePointer = stackTop - argNum - 2;
+    basePointer = stackTop - argNum - 1;
 
     if(DEBUG) {
         std::cerr << "CALL: argNum = " << argNum << std::endl;
@@ -354,6 +354,8 @@ void StackMachine::jump(const std::string &arg) {
     } else {
         std::cerr << "Error: label '" << arg << "' not found" << std::endl;
     }
+
+    if(DEBUG) std::cout << "Jump to " << arg << std::endl;
 }
 
 // Arithmetic functions
@@ -592,6 +594,11 @@ bool StackMachine::runProgram() {
                 std::get<std::function<void()>>(funcVariant)();
             }
         } else {
+            auto it = labelMap.find(key);
+            if(it != labelMap.end()) {
+                instructionCounter++;
+                continue;
+            }
             std::cerr << "Error: Instruction " << key << " not found!" <<std::endl;
         }
 

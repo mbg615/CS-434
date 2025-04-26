@@ -18,11 +18,11 @@ enum class TokenType {
     LINE_COMMENT, BLOCK_COMMENT, END_OF_FILE,
 
     // Keywords
-    INT, VOID, STRUCT, ENUM, IF, ELSE, WHILE, FOR, SWITCH, CASE, DEFAULT,
+    INT, FLOAT, VOID, STRUCT, ENUM, IF, ELSE, WHILE, FOR, SWITCH, CASE, DEFAULT,
     BREAK, CONTINUE, RETURN,
 
     // Literals and Identifiers
-    STRING_LITERAL, CHAR_LITERAL, INT_LITERAL, IDENTIFIER, ERROR
+    STRING_LITERAL, CHAR_LITERAL, INT_LITERAL, FLOAT_LITERAL, IDENTIFIER, ERROR
 };
 
 inline std::string toString(TokenType type) {
@@ -33,9 +33,9 @@ inline std::string toString(TokenType type) {
             "INCREMENT", "DECREMENT", "PLUS_EQUALS", "MINUS_EQUALS", "MULT_EQUALS", "DIV_EQUALS", "MOD_EQUALS",
             "OR", "AND", "TERNARY",
             "LINE_COMMENT", "BLOCK_COMMENT", "END_OF_FILE",
-            "INT", "VOID", "STRUCT", "ENUM", "IF", "ELSE", "WHILE", "FOR", "SWITCH", "CASE", "DEFAULT",
+            "INT", "FLOAT", "VOID", "STRUCT", "ENUM", "IF", "ELSE", "WHILE", "FOR", "SWITCH", "CASE", "DEFAULT",
             "BREAK", "CONTINUE", "RETURN",
-            "STRING_LITERAL", "CHAR_LITERAL", "INT_LITERAL", "IDENTIFIER", "ERROR"};
+            "STRING_LITERAL", "CHAR_LITERAL", "INT_LITERAL", "FLOAT_LITERAL", "IDENTIFIER", "ERROR"};
     return string[static_cast<int>(type)];
 }
 

@@ -34,16 +34,16 @@ public:
 
 class LiteralExprNode : public AST {
 public:
-    using Value = std::variant<int, std::string>;
+    using Value = std::variant<int, float, std::string>;
+
+    Value value;
 
     explicit LiteralExprNode(int val);
+    explicit LiteralExprNode(float val);
     explicit LiteralExprNode(std::string val);
 
     void emit() const override;
     void emitStackCode() const override;
-
-private:
-    Value value;
 };
 
 class ExprStmtNode : public AST {
@@ -103,9 +103,9 @@ public:
 class VarExprNode : public AST {
 private:
     int offset;
-    std::string name;
 
 public:
+    std::string name;
     VarExprNode(std::string varName, int offset);
     void emit() const override;
     void emitStackCode() const override;
@@ -152,6 +152,27 @@ private:
 
 public:
     FunctionCallNode(std::string name, std::vector<ASTPtr> arguments);
+    void emit() const override;
+    void emitStackCode() const override;
+};
+
+class PrintStmtNode : public AST {
+private:
+    ASTPtr expr;
+
+public:
+    explicit PrintStmtNode(ASTPtr expr);
+    void emit() const override;
+    void emitStackCode() const override;
+};
+
+class ReadStmtNode : public AST {
+private:
+    ASTPtr var;
+    int varOffset;
+
+public:
+    explicit ReadStmtNode(ASTPtr var, int varOffset);
     void emit() const override;
     void emitStackCode() const override;
 };

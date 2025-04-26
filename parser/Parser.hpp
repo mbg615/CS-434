@@ -37,11 +37,9 @@ public:
     ASTPtr parseComparison();
     ASTPtr parseReturn();
     ASTPtr parseFunction();
-
     ASTPtr parseExpr();
     ASTPtr parseTerm();
     ASTPtr parseFactor();
-
 };
 
 #endif //PARSER_HPP

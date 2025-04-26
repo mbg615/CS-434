@@ -19,18 +19,17 @@
  */
 
 #include <iostream>
-#include <vector>
 #include <string>
 #include <fstream>
-
 #include "../Token.hpp"
+
 #include "../Lexer/Lexer.hpp"
 #include "../Parser/Parser.hpp"
 #include "../stackMachine/StackMachine.hpp"
 
 int main(int argc, char **argv) {
     if(argc == 1) {
-        std::cout << "Compiler Error: no input files\n";
+        std::cerr << "Compile Error: no input files\n";
         exit(1);
     }
 
@@ -44,14 +43,14 @@ int main(int argc, char **argv) {
 
         outputFile << "jump _main:\n";
 
-        auto program = parser.parseProgram();
+        std::vector<ASTPtr> program = parser.parseProgram();
 
         for (const auto& func : program) {
             func->emitStackCode();
         }
 
     } catch (const std::exception& e) {
-        std::cerr << "Compiler Error: " << e.what() << std::endl;
+        std::cerr << "Compile Error: " << e.what() << std::endl;
         return 1;
     }
 
@@ -59,12 +58,6 @@ int main(int argc, char **argv) {
 
     StackMachine stackMachine;
     stackMachine.loadProgramFromFile("out.vsm");
-
-    stackMachine.printInstructionQueue();
-    std::cout << std::endl;
-    stackMachine.printLabelMap();
-    std::cout << std::endl;
-
     stackMachine.runProgram();
 
     return 0;

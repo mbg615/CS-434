@@ -1,5 +1,6 @@
 #include "Parser.hpp"
 
+#include <sstream>
 #include <stdexcept>
 #include <vector>
 
@@ -14,10 +15,9 @@ void Parser::advance() {
     } else {
         currentToken = lexer.lex();
     }
-//    currentToken = lexer.lex();
-//    if(currentToken.getToken() == TokenType::LINE_COMMENT || currentToken.getToken() == TokenType::BLOCK_COMMENT) {
-//        advance();
-//    }
+    if(currentToken.getToken() == TokenType::LINE_COMMENT || currentToken.getToken() == TokenType::BLOCK_COMMENT) {
+        advance();
+    }
 }
 
 Token Parser::peek() {
@@ -29,8 +29,13 @@ Token Parser::peek() {
 }
 
 void Parser::expect(TokenType expectedType) {
-    if(currentToken.getToken() != expectedType) {
-        throw std::runtime_error("Unexpected token: " + toString(currentToken.getToken()) + ", expected: " + toString(expectedType));
+    if (currentToken.getToken() != expectedType) {
+        std::stringstream ss;
+        ss << "Syntax Error at line " << currentToken.getLine()
+           << ", column " << currentToken.getColumn()
+           << ": Expected " << toString(expectedType)
+           << ", but got " << toString(currentToken.getToken());
+        throw std::runtime_error(ss.str());
     }
 }
 
@@ -87,6 +92,11 @@ ASTPtr Parser::parseFactor() {
         advance();
         return std::make_unique<LiteralExprNode>(value);
     }
+    else if (currentToken.getToken() == TokenType::FLOAT_LITERAL) {
+        float value = std::stof(currentToken.getLexeme());
+        advance();
+        return std::make_unique<LiteralExprNode>(value);
+    }
     else if (currentToken.getToken() == TokenType::STRING_LITERAL) {
         std::string value = currentToken.getLexeme();
         advance();
@@ -113,6 +123,34 @@ ASTPtr Parser::parseFactor() {
             expect(TokenType::RIGHT_PAREN);
             advance();
 
+            if(varName == "print") {
+                if (args.size() != 1) {
+                    throw std::runtime_error(
+                            "Syntax error at line " + std::to_string(currentToken.getLine()) +
+                            ", column " + std::to_string(currentToken.getColumn()) +
+                            ": print() takes exactly one argument, but got " +
+                            std::to_string(args.size())
+                    );
+                }
+                return std::make_unique<PrintStmtNode>(std::move(args[0]));
+            } else if(varName == "read") {
+                if (args.size() != 1) {
+                    throw std::runtime_error(
+                            "Syntax error at line " + std::to_string(currentToken.getLine()) +
+                            ", column " + std::to_string(currentToken.getColumn()) +
+                            ": print() takes exactly one argument, but got " +
+                            std::to_string(args.size())
+                    );
+                }
+
+                if (dynamic_cast<VarExprNode*>(args[0].get()) == nullptr) {
+                    throw std::runtime_error("read() expects a variable name, not an expression");
+                }
+
+                auto varExpr = dynamic_cast<VarExprNode*>(args[0].get());
+                return std::make_unique<ReadStmtNode>(std::move(args[0]), variableOffsets[varExpr->name]);
+            }
+
             return std::make_unique<FunctionCallNode>(varName, std::move(args));
 
         }
@@ -127,7 +165,12 @@ ASTPtr Parser::parseFactor() {
         return expr;
     }
     else {
-        throw std::runtime_error("Unexpected token in factor");
+        throw std::runtime_error(
+                "Unexpected token '" + currentToken.getLexeme() +
+                "' (type " + toString(currentToken.getToken()) +
+                ") at line " + std::to_string(currentToken.getLine()) +
+                ", column " + std::to_string(currentToken.getColumn())
+        );
     }
 }
 
@@ -145,6 +188,7 @@ ASTPtr Parser::parseStmt() {
         case TokenType::LEFT_BRACE:
             return parseBlock();
 
+        case TokenType::FLOAT:
         case TokenType::INT:
             return parseVarDecl();
 
@@ -184,9 +228,6 @@ ASTPtr Parser::parseBlock() {
     }
 
     while(currentToken.getToken() != TokenType::RIGHT_BRACE) {
-        if (currentToken.getToken() == TokenType::INT) {
-            throw std::runtime_error("Error: Variable declarations must appear before any statements.");
-        }
         stmts.push_back(parseStmt());
     }
 
@@ -236,10 +277,21 @@ ASTPtr Parser::parseWhileStmt() {
 }
 
 ASTPtr Parser::parseVarDecl() {
-    expect(TokenType::INT);
+    if (currentToken.getToken() != TokenType::INT && currentToken.getToken() != TokenType::FLOAT) {
+        throw std::runtime_error(
+                "Variable declaration: expected 'int' or 'float', but got '" +
+                currentToken.getLexeme() +
+                "' (type " + toString(currentToken.getToken()) +
+                ") at line " + std::to_string(currentToken.getLine()) +
+                ", column " + std::to_string(currentToken.getColumn())
+        );
+    }
+
+    TokenType type = currentToken.getToken();
     advance();
 
     if (currentToken.getToken() != TokenType::IDENTIFIER) {
+        // ToDo: Update to use expect?
         throw std::runtime_error("Expected variable name after type");
     }
     std::string varName = currentToken.getLexeme();
@@ -255,7 +307,13 @@ ASTPtr Parser::parseVarDecl() {
     advance();
 
     declareVariable(varName);
-    if (!initializer) initializer = std::make_unique<LiteralExprNode>(0);
+    if(!initializer) {
+        if(type == TokenType::INT) {
+            initializer = std::make_unique<LiteralExprNode>(0);
+        } else if(type == TokenType::FLOAT) {
+            initializer = std::make_unique<LiteralExprNode>(0.0f);
+        }
+    }
 
     return std::make_unique<VarDeclNode>(varName, std::move(initializer), variableOffset(varName));
 }

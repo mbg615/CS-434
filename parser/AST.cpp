@@ -36,18 +36,22 @@ void BinExprNode::emitStackCode() const {
         case TokenType::GREATER: *out << "gt\n"; break;
         case TokenType::GREATER_EQUALS: *out << "gte\n"; break;
         case TokenType::LESS_EQUALS: *out << "lte\n"; break;
-        default: throw std::runtime_error("Unknown Operator");
+        default: throw std::runtime_error("Unknown Operator: " + toString(oper));
     }
 }
 
 LiteralExprNode::LiteralExprNode(int val) : value(val) {}
+
+LiteralExprNode::LiteralExprNode(float val) : value(val) {}
 
 LiteralExprNode::LiteralExprNode(std::string val) : value(std::move(val)) {}
 
 void LiteralExprNode::emit() const {
     if (std::holds_alternative<int>(value)) {
         std::cout << std::get<int>(value);
-    } else if (std::holds_alternative<std::string>(value)) {
+    } else if(std::holds_alternative<float>(value)) {
+        std::cout << std::get<float>(value);
+    } else if(std::holds_alternative<std::string>(value)) {
         std::cout << "\"" << std::get<std::string>(value) << "\"";
     }
 }
@@ -55,6 +59,8 @@ void LiteralExprNode::emit() const {
 void LiteralExprNode::emitStackCode() const {
     if (std::holds_alternative<int>(value)) {
         *out << "push " << std::get<int>(value) << "\n";
+    } else if(std::holds_alternative<float>(value)) {
+        *out << "push " << std::get<float>(value) << "\n";
     }
 }
 
@@ -62,7 +68,6 @@ ExprStmtNode::ExprStmtNode(ASTPtr expr) : expr(std::move(expr)) {};
 
 void ExprStmtNode::emit() const {
     expr->emit();
-    // ToDo: Complete logic if needed.
 }
 
 void ExprStmtNode::emitStackCode() const {
@@ -227,5 +232,43 @@ void FunctionCallNode::emitStackCode() const {
     for (const auto& arg : args) {
         arg->emitStackCode();
     }
+    *AST::out << "push " << args.size() << "\n";
     *AST::out << "call " << "_" << name << ":\n";
+}
+
+PrintStmtNode::PrintStmtNode(ASTPtr expr) : expr(std::move(expr)) {}
+
+void PrintStmtNode::emit() const {
+    std::cout << "print: ";
+    expr->emit();
+    std::cout << std::endl;
+}
+
+void PrintStmtNode::emitStackCode() const {
+    if (auto lit = dynamic_cast<LiteralExprNode*>(expr.get())) {
+        std::visit([&](auto&& val) {
+            using T = std::decay_t<decltype(val)>;
+            if constexpr (std::is_same_v<T, std::string>) {
+                *out << "print " << val << "\n";
+            } else {
+                expr->emitStackCode();
+                *out << "print\n";
+            }
+        }, lit->value);
+    } else {
+        expr->emitStackCode();
+        *out << "print\n";
+    }
+}
+
+ReadStmtNode::ReadStmtNode(ASTPtr var, int offset) : var(std::move(var)), varOffset(offset) {};
+
+void ReadStmtNode::emit() const {
+    std::cout << "read into " << varOffset << std::endl;
+}
+
+void ReadStmtNode::emitStackCode() const {
+    *out << "read\n";
+    *out << "push " << varOffset << "\n";
+    *out << "store bp\n";
 }
