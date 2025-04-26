@@ -46,6 +46,7 @@ public:
     void brz(const std::string &arg);
     void jump(const std::string &arg);
 
+    void neg();
     void add();
     void sub();
     void mul();

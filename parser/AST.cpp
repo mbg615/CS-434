@@ -272,3 +272,16 @@ void ReadStmtNode::emitStackCode() const {
     *out << "push " << varOffset << "\n";
     *out << "store bp\n";
 }
+
+UnaryMinusNode::UnaryMinusNode(ASTPtr expr) : expr(std::move(expr)) {}
+
+void UnaryMinusNode::emit() const {
+    std::cout << "(-";
+    expr->emit();
+    std::cout << ")";
+}
+
+void UnaryMinusNode::emitStackCode() const {
+    expr->emitStackCode();
+    *out << "neg\n";
+}

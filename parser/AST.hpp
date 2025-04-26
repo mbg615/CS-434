@@ -177,4 +177,14 @@ public:
     void emitStackCode() const override;
 };
 
+class UnaryMinusNode : public AST {
+private:
+    ASTPtr expr;
+
+public:
+    explicit UnaryMinusNode(ASTPtr expr);
+    void emit() const override;
+    void emitStackCode() const override;
+};
+
 #endif //COMPILER_AST_HPP

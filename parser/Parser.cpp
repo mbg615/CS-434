@@ -87,6 +87,11 @@ ASTPtr Parser::parseTerm() {
 }
 
 ASTPtr Parser::parseFactor() {
+    if(currentToken.getToken() == TokenType::MINUS) {
+        advance();
+        auto inner = parseFactor();
+        return std::make_unique<UnaryMinusNode>(std::move(inner));
+    }
     if (currentToken.getToken() == TokenType::INT_LITERAL) {
         int value = std::stoi(currentToken.getLexeme());
         advance();

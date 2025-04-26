@@ -34,6 +34,7 @@ StackMachine::StackMachine() {
     instructionImplementationMap["jump"] = [this](const std::string &arg) {jump(arg);};
 
     // Arithmetic function initializations
+    instructionImplementationMap["neg"] = [this]() {neg();};
     instructionImplementationMap["add"] = [this]() {add();};
     instructionImplementationMap["sub"] = [this]() {sub();};
     instructionImplementationMap["mul"] = [this]() {mul();};
@@ -359,6 +360,15 @@ void StackMachine::jump(const std::string &arg) {
 }
 
 // Arithmetic functions
+void StackMachine::neg() {
+    if(stackTop <= 0) {
+        std::cerr << "Error: Stack underflow in neg()\n";
+        return;
+    }
+    auto &top = memoryStack[stackTop - 1];
+    std::visit([](auto &v) { v = -v; }, top);
+}
+
 void StackMachine::add() {
     if (!validAddress(stackTop)) return;
     pop();
