@@ -22,20 +22,21 @@ enum class TokenType {
     BREAK, CONTINUE, RETURN,
 
     // Literals and Identifiers
-    STRING_LITERAL, CHAR_LITERAL, INT_LITERAL, FLOAT_LITERAL, IDENTIFIER, ERROR
+    STRING_LITERAL, CHAR_LITERAL, INT_LITERAL, FLOAT_LITERAL, IDENTIFIER, ERROR, WARNING [[maybe_unused]]
 };
 
 inline std::string toString(TokenType type) {
     std::string string[] = {
-            "LEFT_PAREN", "RIGHT_PAREN", "LEFT_BRACE", "RIGHT_BRACE", "LEFT_BRACKET", "RIGHT_BRACKET",
-            "COMMA", "DOT", "SEMICOLON", "COLON", "FORWARD_SLASH", "ASTERISK", "PLUS", "MINUS", "PERCENT", "NOT",
-            "ASSIGN", "EQUALS", "NOT_EQUALS", "GREATER", "GREATER_EQUALS", "LESS", "LESS_EQUALS",
-            "INCREMENT", "DECREMENT", "PLUS_EQUALS", "MINUS_EQUALS", "MULT_EQUALS", "DIV_EQUALS", "MOD_EQUALS",
-            "OR", "AND", "TERNARY",
-            "LINE_COMMENT", "BLOCK_COMMENT", "END_OF_FILE",
-            "INT", "FLOAT", "VOID", "STRUCT", "ENUM", "IF", "ELSE", "WHILE", "FOR", "SWITCH", "CASE", "DEFAULT",
-            "BREAK", "CONTINUE", "RETURN",
-            "STRING_LITERAL", "CHAR_LITERAL", "INT_LITERAL", "FLOAT_LITERAL", "IDENTIFIER", "ERROR"};
+            "LEFT_PAREN", "RIGHT_PAREN", "LEFT_BRACE", "RIGHT_BRACE", "LEFT_BRACKET",
+            "RIGHT_BRACKET", "COMMA", "DOT", "SEMICOLON", "COLON", "FORWARD_SLASH",
+            "ASTERISK", "PLUS", "MINUS", "PERCENT", "NOT","ASSIGN", "EQUALS",
+            "NOT_EQUALS", "GREATER", "GREATER_EQUALS", "LESS", "LESS_EQUALS", "INCREMENT",
+            "DECREMENT", "PLUS_EQUALS", "MINUS_EQUALS", "MULT_EQUALS", "DIV_EQUALS",
+            "MOD_EQUALS", "OR", "AND", "TERNARY", "LINE_COMMENT", "BLOCK_COMMENT",
+            "END_OF_FILE", "INT", "FLOAT", "VOID", "STRUCT", "ENUM", "IF",
+            "ELSE", "WHILE", "FOR", "SWITCH", "CASE", "DEFAULT", "BREAK",
+            "CONTINUE", "RETURN", "STRING_LITERAL", "CHAR_LITERAL", "INT_LITERAL",
+            "FLOAT_LITERAL", "IDENTIFIER", "ERROR", "WARNING"};
     return string[static_cast<int>(type)];
 }
 
