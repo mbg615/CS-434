@@ -23,7 +23,6 @@ private:
     int instructionCounter = 0; // (pc) Next instruction to execute
 
     // Stack model
-//    Value memoryStack[4096]{};
     std::vector<Value> memoryStack;
     int stackTop = 0; // (top) Next open slot in memory stack
     int basePointer = 0; // (bp) Base frame of current function

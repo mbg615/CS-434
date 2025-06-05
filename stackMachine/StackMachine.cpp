@@ -5,16 +5,10 @@
 #include <fstream>
 
 int StackMachine::validAddress(const int addr) {
-    /* ToDo:
-     * Inline this in the functions that need it. Due to memoryStack being a vector it is possible
-     * that memoryStack.size() == memoryStack.capacity() before the .push_back() which would grow
-     * the vector. So this is no longer a safe or functional function.
-     */
-    // if (addr >= memoryStack.size()) {
-    if (addr > memoryStack.size()) {
-        std::cout << "Addr:" << addr << std::endl;
-        std::cout << "Size:" << memoryStack.size() << std::endl;
-        return 1;
+    /* This being >= might cause issues
+     * I think 668cd4727245eb838d3ba6fa47b3b4f44acce330 fixes it
+     * though due to the stack having no max size. */
+    if (addr >= memoryStack.size()) {
         std::cerr << "Stack overflow" << std::endl;
         return 0;
     } if (addr < 0) {
@@ -70,7 +64,6 @@ void StackMachine::push(const std::string &arg) {
         std::cerr << "Error: push requires an argument" << std::endl;
         return;
     }
-    if (!validAddress(stackTop)) return;
 
     if(arg == "bp") {
         if (!validAddress(basePointer)) return;
@@ -102,8 +95,6 @@ void StackMachine::push(const std::string &arg) {
 }
 
 void StackMachine::pop(const std::string &arg) {
-    if (!validAddress(stackTop)) return;
-
     if(arg == "top") {
         stackTop = std::visit([](auto v) -> int {
             if constexpr (std::is_same_v<decltype(v), float>) {
@@ -136,7 +127,6 @@ void StackMachine::pop(const std::string &arg) {
 }
 
 void StackMachine::pop() {
-    if (!validAddress(stackTop)) return;
     generalPurposeRegister = memoryStack.back();
     if(DEBUG) {
         std::visit([](auto v) {
@@ -148,7 +138,6 @@ void StackMachine::pop() {
 }
 
 void StackMachine::dup() {
-    if (!validAddress(stackTop)) return;
     memoryStack.push_back(memoryStack.back());
     generalPurposeRegister = memoryStack.back();
     stackTop++;
@@ -386,7 +375,6 @@ void StackMachine::neg() {
 }
 
 void StackMachine::add() {
-    if (!validAddress(stackTop)) return;
     pop();
     const Value temp = generalPurposeRegister;
     pop();
@@ -399,7 +387,6 @@ void StackMachine::add() {
 }
 
 void StackMachine::sub() {
-    if (!validAddress(stackTop)) return;
     pop();
     const Value temp = generalPurposeRegister;
     pop();
@@ -412,7 +399,6 @@ void StackMachine::sub() {
 }
 
 void StackMachine::mul() {
-    if (!validAddress(stackTop)) return;
     pop();
     const Value temp = generalPurposeRegister;
     pop();
@@ -425,7 +411,6 @@ void StackMachine::mul() {
 }
 
 void StackMachine::div() {
-    if (!validAddress(stackTop)) return;
     pop();
     const Value temp = generalPurposeRegister;
     pop();
@@ -438,7 +423,6 @@ void StackMachine::div() {
 }
 
 void StackMachine::mod() {
-    if (!validAddress(stackTop)) return;
     pop();
     const Value temp = generalPurposeRegister;
     pop();
@@ -457,7 +441,6 @@ void StackMachine::mod() {
 
 // Relational operator functions
 void StackMachine::eq() {
-    if (!validAddress(stackTop)) return;
     pop();
     const Value temp = generalPurposeRegister;
     pop();
@@ -469,7 +452,6 @@ void StackMachine::eq() {
 }
 
 void StackMachine::neq() {
-    if (!validAddress(stackTop)) return;
     pop();
     const Value temp = generalPurposeRegister;
     pop();
@@ -481,7 +463,6 @@ void StackMachine::neq() {
 }
 
 void StackMachine::lt() {
-    if (!validAddress(stackTop)) return;
     pop();
     const Value temp = generalPurposeRegister;
     pop();
@@ -493,7 +474,6 @@ void StackMachine::lt() {
 }
 
 void StackMachine::lte() {
-    if (!validAddress(stackTop)) return;
     pop();
     const Value temp = generalPurposeRegister;
     pop();
@@ -505,7 +485,6 @@ void StackMachine::lte() {
 }
 
 void StackMachine::gt() {
-    if (!validAddress(stackTop)) return;
     pop();
     const Value temp = generalPurposeRegister;
     pop();
@@ -517,7 +496,6 @@ void StackMachine::gt() {
 }
 
 void StackMachine::gte() {
-    if (!validAddress(stackTop)) return;
     pop();
     const Value temp = generalPurposeRegister;
     pop();
