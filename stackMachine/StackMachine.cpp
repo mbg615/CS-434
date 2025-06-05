@@ -5,7 +5,16 @@
 #include <fstream>
 
 int StackMachine::validAddress(const int addr) {
-    if (addr >= 4096) {
+    /* ToDo:
+     * Inline this in the functions that need it. Due to memoryStack being a vector it is possible
+     * that memoryStack.size() == memoryStack.capacity() before the .push_back() which would grow
+     * the vector. So this is no longer a safe or functional function.
+     */
+    // if (addr >= memoryStack.size()) {
+    if (addr > memoryStack.size()) {
+        std::cout << "Addr:" << addr << std::endl;
+        std::cout << "Size:" << memoryStack.size() << std::endl;
+        return 1;
         std::cerr << "Stack overflow" << std::endl;
         return 0;
     } if (addr < 0) {
@@ -65,15 +74,16 @@ void StackMachine::push(const std::string &arg) {
 
     if(arg == "bp") {
         if (!validAddress(basePointer)) return;
-        memoryStack[stackTop++] = generalPurposeRegister = memoryStack[basePointer];
+        memoryStack.push_back(memoryStack[basePointer]);
     } else if(arg == "top") {
-        memoryStack[stackTop++] = generalPurposeRegister = memoryStack[stackTop - 1];
+        memoryStack.push_back(memoryStack[stackTop - 1]);
     } else {
+        // ToDo: Fix this mess
         try {
             if(arg.find('.') != std::string::npos) {
-                memoryStack[stackTop++] = generalPurposeRegister = std::stof(arg);
+                memoryStack.emplace_back(std::stof(arg));
             } else{
-                memoryStack[stackTop++] = generalPurposeRegister = std::stoi(arg);
+                memoryStack.emplace_back(std::stoi(arg));
             }
         } catch(const std::invalid_argument &e) {
             std::cerr << "Invalid push argument: " << arg << std::endl;
@@ -86,6 +96,9 @@ void StackMachine::push(const std::string &arg) {
             std::cout << "Pushed " << v << " onto the stack" << std::endl;
         }, generalPurposeRegister);
     }
+
+    generalPurposeRegister = memoryStack.back();
+    stackTop++;
 }
 
 void StackMachine::pop(const std::string &arg) {
@@ -98,7 +111,7 @@ void StackMachine::pop(const std::string &arg) {
                 return static_cast<int>(v); // convert float to int
             }
             return v;
-        }, memoryStack[--stackTop]);
+        }, memoryStack.back());
         if(DEBUG) std::cout << "Popped " << stackTop << " from the stack" << std::endl;
     } else if(arg == "bp") {
         basePointer = std::visit([](auto v) -> int {
@@ -107,10 +120,10 @@ void StackMachine::pop(const std::string &arg) {
                 return static_cast<int>(v); // convert float to int
             }
             return v;
-        }, memoryStack[--basePointer]);
+        }, memoryStack.back());
         if(DEBUG) std::cout << "Popped " << basePointer << " from the stack" << std::endl;
     } else {
-        generalPurposeRegister = memoryStack[--stackTop];
+        generalPurposeRegister = memoryStack.back();
         if(DEBUG) {
             std::visit([](auto v) {
                 std::cout << "Popped " << v << " from the stack" << std::endl;
@@ -118,23 +131,26 @@ void StackMachine::pop(const std::string &arg) {
         }
     }
 
-    memoryStack[stackTop] = 0;
+    memoryStack.pop_back();
+    stackTop--;
 }
 
 void StackMachine::pop() {
     if (!validAddress(stackTop)) return;
-    generalPurposeRegister = memoryStack[--stackTop];
+    generalPurposeRegister = memoryStack.back();
     if(DEBUG) {
         std::visit([](auto v) {
             std::cout << "Popped " << v << " from the stack" << std::endl;
         }, generalPurposeRegister);
     }
-    memoryStack[stackTop] = 0;
+    memoryStack.pop_back();
+    stackTop--;
 }
 
 void StackMachine::dup() {
     if (!validAddress(stackTop)) return;
-    memoryStack[stackTop] = generalPurposeRegister = memoryStack[stackTop - 1];
+    memoryStack.push_back(memoryStack.back());
+    generalPurposeRegister = memoryStack.back();
     stackTop++;
     if(DEBUG) {
         std::visit([](auto v) {
@@ -180,7 +196,7 @@ void StackMachine::save(const std::string &arg) {
     }
 
     if (!validAddress(addr)) return;
-    memoryStack[addr] = generalPurposeRegister = memoryStack[stackTop - 1];
+    memoryStack[addr] = generalPurposeRegister = memoryStack.back();
 }
 
 void StackMachine::store(const std::string &arg) {
@@ -200,7 +216,7 @@ void StackMachine::store(const std::string &arg) {
     }
 
     if (!validAddress(addr)) return;
-    memoryStack[addr] = generalPurposeRegister = memoryStack[stackTop - 1];
+    memoryStack[addr] = generalPurposeRegister = memoryStack.back();
 }
 
 // Control flow functions
@@ -365,7 +381,7 @@ void StackMachine::neg() {
         std::cerr << "Error: Stack underflow in neg()\n";
         return;
     }
-    auto &top = memoryStack[stackTop - 1];
+    auto &top = memoryStack.back();
     std::visit([](auto &v) { v = -v; }, top);
 }
 
@@ -522,7 +538,7 @@ void StackMachine::print(const std::string &arg) {
 
         std::visit([](auto v) {
             std::cout << v << std::endl;
-        }, memoryStack[stackTop - 1]);
+        }, memoryStack.back());
 
     } else {
         std::string formattedArg;
@@ -550,11 +566,7 @@ void StackMachine::read() {
     std::cin >> input;
 
     try {
-        if(input.find('.') != std::string::npos) {
-            memoryStack[stackTop++] = generalPurposeRegister = std::stof(input);
-        } else {
-            memoryStack[stackTop++] = generalPurposeRegister = std::stoi(input);
-        }
+        push(input);
     } catch(...) {
         std::cerr << "Error: Invalid input for read()\n";
     }
@@ -584,7 +596,7 @@ void StackMachine::end(const std::string &arg) {
                 exit(static_cast<int>(v));
             }
             exit(v);
-        }, memoryStack[stackTop - 1]);
+        }, memoryStack.back());
     }
 }
 
@@ -655,25 +667,22 @@ bool StackMachine::loadProgramFromFile(const std::string &filename) {
             argument.clear();
         }
 
-        if(index >= MAX_INSTRUCTION_COUNT) continue;
-
-        instructionQueue[index][0] = token;
-        instructionQueue[index][1] = argument;
-
+        instructionQueue.push_back({token, argument});
         index++;
     }
 
-    if (index >= MAX_INSTRUCTION_COUNT) {
-        std::cerr << "Warning: Program truncated to fit instruction memory" << std::endl;
-    }
+//    if (index >= MAX_INSTRUCTION_COUNT) {
+//        std::cerr << "Warning: Program truncated to fit instruction memory" << std::endl;
+//    }
 
     return true;
 }
 
 void StackMachine::printInstructionQueue() const {
-    for (int i = 0; i < MAX_INSTRUCTION_COUNT; ++i) {
-        if(instructionQueue[i][0].empty() && instructionQueue[i][1].empty()) continue;
-        std::cout << "Instruction " << i << ": " << instructionQueue[i][0] << " " << instructionQueue[i][1] << std::endl;
+    int index = 0;
+    for (auto &instruction : instructionQueue) {
+        if(instruction[0].empty() && instruction[1].empty()) continue;
+        std::cout << "Instruction " << index++ << ": " << instruction[0] << " " << instruction[1] << "\n";
     }
 }
 

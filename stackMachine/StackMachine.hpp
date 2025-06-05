@@ -1,11 +1,12 @@
 #ifndef STACKMACHINE_HPP
 #define STACKMACHINE_HPP
 
-#define MAX_INSTRUCTION_COUNT 1024
 #define DEBUG 0
 
 #include <unordered_map>
 #include <variant>
+#include <vector>
+#include <array>
 #include <functional>
 #include <string>
 
@@ -17,17 +18,18 @@ private:
     Value generalPurposeRegister = 0; // General Purpose Register
 
     // Instruction model
-    std::string instructionQueue[MAX_INSTRUCTION_COUNT][2];
+    std::vector<std::array<std::string, 2>> instructionQueue;
     std::unordered_map<std::string, int> labelMap;
     int instructionCounter = 0; // (pc) Next instruction to execute
 
     // Stack model
-    Value memoryStack[4096]{};
+//    Value memoryStack[4096]{};
+    std::vector<Value> memoryStack;
     int stackTop = 0; // (top) Next open slot in memory stack
     int basePointer = 0; // (bp) Base frame of current function
     std::vector<int> returnAddressStack;
 
-    static int validAddress(const int addr);
+    int validAddress(const int addr);
 
 public:
     StackMachine();
