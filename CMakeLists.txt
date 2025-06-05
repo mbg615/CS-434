@@ -70,9 +70,17 @@ endif()
 if (BUILD_COMPILER)
     # Collect all source files in the compiler directory
     file(GLOB COMPILER_SOURCES compiler/*.cpp)
-    file(GLOB LEXER_SOURCES Lexer/*.cpp)
+#    file(GLOB LEXER_SOURCES Lexer/*.cpp)
+
+    set(STACK_MACHINE_SOURCES
+            stackMachine/StackMachine.cpp
+    )
+
+    set(LEXER_SOURCES
+            Lexer/Lexer.cpp
+    )
+
     file(GLOB PARSER_SOURCES Parser/*.cpp)
-    file(GLOB STACK_MACHINE_SOURCES stackMachine/*.cpp)
 
     # Define the compiler executable
     add_executable(compiler

@@ -9,9 +9,7 @@
  * literals, operators, and other language constructs.
  */
 
-#include <iostream>
 #include <fstream>
-#include <algorithm>
 
 #include "Lexer.hpp"
 
